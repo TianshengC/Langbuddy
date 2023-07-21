@@ -74,6 +74,28 @@ app.post('/login', async (req, res) => {
     }
 })
 
+// User Profile
+
+
+// CRUD for Study Items
+
+app.get('/study-items/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const studyItems = await pool.query(
+            "SELECT * FROM study_items WHERE id_user = $1",
+            [userId]
+        );
+        res.json(studyItems.rows);
+    } catch (err) {
+        console.error(err.message);
+    }
+})
+
+
+
+
+
 
 
 
