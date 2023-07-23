@@ -12,6 +12,20 @@ import Dashboard from './pages/Dashboard';
 import ChatBuddy from './pages/ChatBuddy';
 import Study from './pages/Study';
 import Review from './pages/Review';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { cyan, lightBlue } from '@mui/material/colors';
+import CssBaseline from '@mui/material/CssBaseline';
+
+export const theme = createTheme({
+  palette: {
+    primary: {
+      main: cyan[400],
+    },
+    secondary: {
+      main: lightBlue[500],
+    },
+  },
+});
 
 
 function App() {
@@ -19,6 +33,8 @@ function App() {
   const [user, setUser] = useState('Tom');
   return (
     <BrowserRouter>
+      <ThemeProvider theme={theme}>
+      <CssBaseline />
       <Routes>
       
         <Route path="/" element={<SharedLayout />}>
@@ -35,8 +51,8 @@ function App() {
             <Route path="review" element={<Review />} />
           </Route>
         </Route>
-
       </Routes>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
