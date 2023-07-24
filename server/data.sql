@@ -11,6 +11,7 @@ CREATE TABLE Users (
     last_login TIMESTAMP,
     current_login TIMESTAMP,
     mother_language VARCHAR(20) NOT NULL
+    username VARCHAR(40) NOT NULL;
 );
 
 CREATE TABLE Study_Items (
