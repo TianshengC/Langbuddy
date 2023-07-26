@@ -11,6 +11,9 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import { useNavigate } from 'react-router-dom';
+import UserContext from '../utils/UserContext';
+import { useContext } from 'react';
+
 
 function LogIn() {
 
@@ -18,9 +21,11 @@ function LogIn() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const {setCurrentUser} = useContext(UserContext);
 
   const emailRegex = /^\S+@\S+\.\S+$/;
   const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -42,29 +47,25 @@ function LogIn() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/login', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(userFormatedData)
+        body: JSON.stringify(userFormatedData),
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        let errorMessage;
-        try {
-          const data = await response.json();
-          errorMessage = data.message;
-        } catch (jsonError) {
-          errorMessage = 'Failed to parse server response';
-        }
-        setError(errorMessage);
-        console.log(errorMessage);
+        const data = await response.json();
+        setError(data.message);
         return;
       }
 
       const data = await response.json();
-      console.log("Logged in user: " + data.user_email);
+      console.log(data);
+      await setCurrentUser({id_user: data.id_user, username: data.username});
+      console.log("frontend success login: "+ data.id_user);
       navigate('/dashboard');
     } catch (err) {
       setError('There was an error processing your request. Please try again.');

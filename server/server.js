@@ -7,10 +7,20 @@ const pool = require('./db')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken');
 const { check, validationResult } = require('express-validator');
+const cookie = require('cookie');
+const cookieParser = require('cookie-parser');
+
 
 
 app.use(express.json())
-app.use(cors())
+
+app.use(cors({
+    origin: 'http://localhost:3000', // The address of the server where React is running on
+    credentials: true, // This allows the server to accept cookies from the client side
+}));
+
+app.use(cookieParser());
+// app.use(cors())
 
 app.get('/', (req, res) => {
     res.send('Hello World')
@@ -80,15 +90,13 @@ app.post('/login',
         return res.status(400).json({ errors: errors.array() });
       }
 
-    try {
+      try {
         const { user_email, password } = req.body;
 
         const user = await pool.query(
             "SELECT * FROM users WHERE user_email = $1",
             [user_email]
         );
-
-        console.log(user.rows[0]);
 
         if (user.rows.length === 0) {
             return res.status(401).json("Invalid Email or password");
@@ -101,18 +109,54 @@ app.post('/login',
         }
 
         const token = jwt.sign(
-            { user: user.rows[0].id_user },
+            { user_id: user.rows[0].id_user, username: user.rows[0].username },
             process.env.JWT_SECRET, { expiresIn: "1h" }
         );
 
-        res.json({ 'id_user':user.rows[0].id_user, token });
-    } catch (err) {
+        res.setHeader('Set-Cookie', cookie.serialize('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 60 * 60,
+          path: '/',
+          sameSite: 'strict'
+        }));
+
+        res.json({ 'id_user':user.rows[0].id_user, 'username': user.rows[0].username });
+        console.log("backend success login: "+ user.rows[0].user_email);
+      } catch (err) {
         console.error(err.message);
         res.status(500).json("Server error");
-    }
+      }
 })
 
+//token verification and decode the token to set currentUser data
+app.get('/me', async (req, res) => {
+    try {
+      const token = req.cookies.token;
+  
+      if (!token) {
+        return res.status(401).json("No token provided");
+      }
+  
+      jwt.verify(token, process.env.JWT_SECRET, function(err, decoded) {
+        if (err) {
+          return res.status(500).json("Failed to authenticate token");
+        }
+  
+        // If the token is valid, return user data
+        res.json({ 'id_user': decoded.user_id, 'username': decoded.username });
+      });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json("Server error");
+    }
+  });
 
+app.post('/logout', (req, res) => {
+    res.clearCookie('token');
+    res.json({ message: 'Logged out' });
+  });
+  
 
 // User Profile
 
