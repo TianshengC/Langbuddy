@@ -9,8 +9,9 @@ const jwt = require('jsonwebtoken');
 const { check, validationResult } = require('express-validator');
 const cookie = require('cookie');
 const cookieParser = require('cookie-parser');
+const util = require('util');
 
-
+const jwtVerify = util.promisify(jwt.verify);
 
 app.use(express.json())
 
@@ -131,26 +132,25 @@ app.post('/login',
 
 //token verification and decode the token to set currentUser data
 app.get('/me', async (req, res) => {
-    try {
+  try {
       const token = req.cookies.token;
-  
+
       if (!token) {
-        return res.status(401).json("No token provided");
+          return res.status(401).json("No token provided");
       }
-  
-      jwt.verify(token, process.env.JWT_SECRET, function(err, decoded) {
-        if (err) {
-          return res.status(500).json("Failed to authenticate token");
-        }
-  
-        // If the token is valid, return user data
-        res.json({ 'id_user': decoded.user_id, 'username': decoded.username });
-      });
-    } catch (err) {
+
+      // If the token is valid, get the decoded data
+      const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+      
+      res.json({ 'id_user': decoded.user_id, 'username': decoded.username });
+  } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError) {
+          return res.status(401).json("Unauthorized");
+      }
       console.error(err.message);
       res.status(500).json("Server error");
-    }
-  });
+  }
+});
 
 app.post('/logout', (req, res) => {
     res.clearCookie('token');
@@ -163,18 +163,125 @@ app.post('/logout', (req, res) => {
 
 // CRUD for Study Items
 
-app.get('/study-items/:userId', async (req, res) => {
+app.get('/study', async (req, res) => {
+  try {
+      const token = req.cookies.token;
+
+      if (!token) {
+          return res.status(401).json("No token provided");
+      }
+
+      const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+      const userId = decoded.user_id;
+
+      const studyItems = await pool.query(
+          "SELECT * FROM study_items WHERE id_user = $1",
+          [userId]
+      );
+
+      res.json(studyItems.rows);
+  } catch (err) {
+      console.error(err.message);
+      res.status(500).json("Server error");
+  }
+});
+
+app.post('/study', async (req, res) => {
+  try {
+      const token = req.cookies.token;
+
+      if (!token) {
+          return res.status(401).json("No token provided");
+      }
+
+      const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+      const userId = decoded.user_id;
+      
+
+      const { category, title, content, scheduled_date } = req.body;
+
+      const newStudyItem = await pool.query(
+          "INSERT INTO study_items (id_user, category, title, content, created_date, scheduled_date, status) VALUES ($1, $2, $3, $4, NOW(), $5, 'Scheduled') RETURNING *",
+          [userId, category, title, content, scheduled_date]
+      );
+
+      res.json(newStudyItem.rows[0]);
+  } catch (err) {
+      console.error(err.message);
+      res.status(500).json("Server error");
+  }
+});
+
+// update a study item status
+app.patch('/study/status/:id_study', async (req, res) => {
     try {
-        const { userId } = req.params;
-        const studyItems = await pool.query(
-            "SELECT * FROM study_items WHERE id_user = $1",
-            [userId]
-        );
-        res.json(studyItems.rows);
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
+
+        const { id_study } = req.params;
+        const { status } = req.body;
+
+        if (status === "Finished" || status === "Canceled") {
+            updatedStudyItem = await pool.query(
+                "UPDATE study_items SET status = $1, finished_date = NOW() WHERE id_study = $2 AND id_user = $3 RETURNING *",
+                [status, id_study, userId]
+            );
+        } else {
+            updatedStudyItem = await pool.query(
+                "UPDATE study_items SET status = $1 WHERE id_study = $2 AND id_user = $3 RETURNING *",
+                [status, id_study, userId]
+            );
+        }
+
+        if (updatedStudyItem.rows.length === 0) {
+            return res.status(404).json("No study item found or not authorized to update");
+        }
+
+        res.json(updatedStudyItem.rows[0]);
     } catch (err) {
         console.error(err.message);
+        res.status(500).json("Server error");
     }
-})
+});
+
+//edit a study item
+app.patch('/study/:id_study', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
+
+        const { id_study } = req.params;
+        const { title, category, content, scheduled_date } = req.body;
+
+        const updatedStudyItem = await pool.query(
+            "UPDATE study_items SET title = $1, category = $2, content = $3, scheduled_date = $4 WHERE id_study = $5 AND id_user = $6 RETURNING *",
+            [title, category, content, scheduled_date, id_study, userId]
+        );
+
+        if (updatedStudyItem.rows.length === 0) {
+            return res.status(404).json("No study item found or not authorized to update");
+        }
+
+        res.json(updatedStudyItem.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
+
+
 
 
 

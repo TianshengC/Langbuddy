@@ -12,7 +12,7 @@ import ChatBuddy from './pages/ChatBuddy';
 import Study from './pages/Study';
 import Review from './pages/Review';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { cyan, lightBlue } from '@mui/material/colors';
+import { cyan, lightBlue, grey } from '@mui/material/colors';
 import CssBaseline from '@mui/material/CssBaseline';
 import UserContext from './utils/UserContext';
 
@@ -23,6 +23,9 @@ export const theme = createTheme({
     },
     secondary: {
       main: lightBlue[500],
+    },
+    default: {
+      main: grey[500],
     },
   },
 });
