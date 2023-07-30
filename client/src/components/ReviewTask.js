@@ -14,7 +14,8 @@ import MenuItem from '@mui/material/MenuItem';
 import categories from '../utils/categories';
 
 
-function StudyTask({
+
+function ReviewTask({
     studyItem,
     studyItems,
     setStudyItems,
@@ -23,7 +24,7 @@ function StudyTask({
     snackbarMessage,
     setSnackbarMessage,
     snackbarSeverity,
-    setSnackbarSeverity, s
+    setSnackbarSeverity, 
 }) {
     const { category, title, content, created_date, scheduled_date, finished_date, status } = studyItem;
 
@@ -96,7 +97,7 @@ function StudyTask({
             }
         } catch (err) {
             console.error(err.message);
-            setSnackbarMessage(err.message || 'Error updating study item');
+            setSnackbarMessage('Error updating study item');
             setSnackbarSeverity('error');
         }
 
@@ -140,7 +141,7 @@ function StudyTask({
             }
         } catch (err) {
             console.error(err.message);
-            setSnackbarMessage(err.message || 'Error updating study item');
+            setSnackbarMessage('Error updating study item');
             setSnackbarSeverity('error');
         }
 
@@ -323,5 +324,4 @@ function StudyTask({
     );
 }
 
-export default StudyTask;
-
+export default ReviewTask;

@@ -23,6 +23,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import categories from '../utils/categories';
+import FormHelperText from '@mui/material/FormHelperText';
 
 
 
@@ -30,21 +31,15 @@ import categories from '../utils/categories';
 
 function Study() {
 
-    const [selectedPeriod, setSelectedPeriod] = useState('Today');
+
     const [modalOpen, setModalOpen] = useState(false);
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
-    
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-    const [studyItems, setStudyItems] = useState([]);
+    const [displayedStudyItems, setDisplayedStudyItems] = useState([]);
     const [statusFilter, setStatusFilter] = useState('Scheduled');
-    const [periodFilter, setPeriodFilter] = useState('Today');
-
-
-    const handlePeriodChange = (period) => {
-        setSelectedPeriod(period);
-    };
+    // const [periodFilter, setPeriodFilter] = useState('Today');
 
     const handleModalOpen = () => {
         setModalOpen(true);
@@ -55,10 +50,11 @@ function Study() {
         reset();  // Reset form state upon modal close
     };
 
+    //get all scheduled study items by status(to do)
     useEffect(() => {
-        const getStudyItems = async () => {
+        const getDisplayerStudyItems = async () => {
             try {
-                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/study`, {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/study/status/${statusFilter}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -68,21 +64,34 @@ function Study() {
 
                 if (response.ok) {
                     const result = await response.json();
-                    setStudyItems(result);
+                    // Sort the data based on 'scheduled_date' or 'finished_date' field
+                    result.sort((a, b) => {
+                        if (statusFilter === 'Scheduled') {
+                            let dateA = new Date(a.scheduled_date), dateB = new Date(b.scheduled_date);
+                            return dateA - dateB; // Ascending order for 'Scheduled'
+                        } else { // For 'Finished' and 'Canceled'
+                            let dateA = new Date(a.finished_date), dateB = new Date(b.finished_date);
+                            return dateB - dateA; // Descending order for 'Finished' and 'Canceled'
+                        }
+                    });
+                    setDisplayedStudyItems(result);
                 } else {
-                    throw new Error('Failed to fetch study items');
+                    const error = await response.text();
+                    throw new Error(error);
                 }
             } catch (err) {
                 console.error(err.message);
             }
         };
 
-        getStudyItems();
-    }, []);
+        getDisplayerStudyItems();
+    }, [statusFilter]);
 
 
 
 
+
+    //create a study item
     const onSubmit = async data => {
 
         try {
@@ -98,7 +107,9 @@ function Study() {
             if (response.ok) {
                 const result = await response.json();
                 console.log(result);
-                setStudyItems(prevStudyItems => [...prevStudyItems, result]);
+                if (statusFilter === 'Scheduled') {
+                    setDisplayedStudyItems(prevStudyItems => [...prevStudyItems, result]);
+                }
                 setSnackbarMessage('Study item created successfully');
                 setSnackbarSeverity('success');
             } else {
@@ -107,7 +118,7 @@ function Study() {
             }
         } catch (err) {
             console.error(err.message);
-            setSnackbarMessage('Error creating study item');
+            setSnackbarMessage(err.message || 'Error creating study item');
             setSnackbarSeverity('error');
         }
 
@@ -118,66 +129,66 @@ function Study() {
 
     return (
         <Container>
-            <Paper elevation={3}>
+            <Paper elevation={3} style={{ minHeight: '100vh', marginTop: '0px', marginBottom: '0px' }} >
                 <Box display="flex" flexDirection="column" alignItems="center">
                     <Typography variant="h4" component="div" gutterBottom align="center">
                         Study Overview
                     </Typography>
                     <ButtonGroup variant="contained" aria-label="outlined primary button group" sx={{ mt: 0.5 }}>
-            <Button
-                onClick={() => setStatusFilter('Scheduled')}
-                variant={statusFilter === 'Scheduled' ? 'contained' : 'outlined'}
-                color={statusFilter === 'Scheduled' ? 'primary' : 'default'}
-            >
-                Scheduled
-            </Button>
-            <Button
-                onClick={() => setStatusFilter('Finished')}
-                variant={statusFilter === 'Finished' ? 'contained' : 'outlined'}
-                color={statusFilter === 'Finished' ? 'primary' : 'default'}
-            >
-                Finished
-            </Button>
-            <Button
-                onClick={() => setStatusFilter('Canceled')}
-                variant={statusFilter === 'Canceled' ? 'contained' : 'outlined'}
-                color={statusFilter === 'Canceled' ? 'primary' : 'default'}
-            >
-                Canceled
-            </Button>
-        </ButtonGroup>
-        {statusFilter === 'Scheduled' && (
-            <ButtonGroup variant="contained" aria-label="outlined primary button group" sx={{ mt: 0.5 }}>
-                <Button
-                    onClick={() => setPeriodFilter('Today')}
-                    variant={periodFilter === 'Today' ? 'contained' : 'outlined'}
-                    color={periodFilter === 'Today' ? 'primary' : 'default'}
-                >
-                    Today
-                </Button>
-                <Button
-                    onClick={() => setPeriodFilter('7 days')}
-                    variant={periodFilter === '7 days' ? 'contained' : 'outlined'}
-                    color={periodFilter === '7 days' ? 'primary' : 'default'}
-                >
-                    Next 7 days
-                </Button>
-                <Button
-                    onClick={() => setPeriodFilter('All')}
-                    variant={periodFilter === 'All' ? 'contained' : 'outlined'}
-                    color={periodFilter === 'All' ? 'primary' : 'default'}
-                >
-                    All
-                </Button>
-            </ButtonGroup>
-        )}
+                        <Button
+                            onClick={() => setStatusFilter('Scheduled')}
+                            variant={statusFilter === 'Scheduled' ? 'contained' : 'outlined'}
+                            color={statusFilter === 'Scheduled' ? 'primary' : 'default'}
+                        >
+                            Scheduled
+                        </Button>
+                        <Button
+                            onClick={() => setStatusFilter('Finished')}
+                            variant={statusFilter === 'Finished' ? 'contained' : 'outlined'}
+                            color={statusFilter === 'Finished' ? 'primary' : 'default'}
+                        >
+                            Finished
+                        </Button>
+                        <Button
+                            onClick={() => setStatusFilter('Canceled')}
+                            variant={statusFilter === 'Canceled' ? 'contained' : 'outlined'}
+                            color={statusFilter === 'Canceled' ? 'primary' : 'default'}
+                        >
+                            Canceled
+                        </Button>
+                    </ButtonGroup>
+                    {/* {statusFilter === 'Scheduled' && (
+                        <ButtonGroup variant="contained" aria-label="outlined primary button group" sx={{ mt: 0.5 }}>
+                            <Button
+                                onClick={() => setPeriodFilter('Today')}
+                                variant={periodFilter === 'Today' ? 'contained' : 'outlined'}
+                                color={periodFilter === 'Today' ? 'primary' : 'default'}
+                            >
+                                Today
+                            </Button>
+                            <Button
+                                onClick={() => setPeriodFilter('7 days')}
+                                variant={periodFilter === '7 days' ? 'contained' : 'outlined'}
+                                color={periodFilter === '7 days' ? 'primary' : 'default'}
+                            >
+                                Next 7 days
+                            </Button>
+                            <Button
+                                onClick={() => setPeriodFilter('All')}
+                                variant={periodFilter === 'All' ? 'contained' : 'outlined'}
+                                color={periodFilter === 'All' ? 'primary' : 'default'}
+                            >
+                                All
+                            </Button>
+                        </ButtonGroup>
+                    )} */}
                     <Grid container spacing={3}>
-                        {studyItems.map((studyItem, index) => (
+                        {displayedStudyItems.map((studyItem, index) => (
                             <StudyTask
                                 key={index}
                                 studyItem={studyItem}
-                                studyItems={studyItems}
-                                setStudyItems={setStudyItems}
+                                studyItems={displayedStudyItems}
+                                setStudyItems={setDisplayedStudyItems}
                                 snackbarOpen={snackbarOpen}
                                 setSnackbarOpen={setSnackbarOpen}
                                 snackbarMessage={snackbarMessage}
@@ -195,16 +206,17 @@ function Study() {
                 </Box>
             </Paper>
 
-{/* // Add a study item Dialog */}
+            {/* // Add a study item Dialog */}
             <Dialog open={modalOpen} onClose={handleModalClose}>
-                <DialogTitle style={{ textAlign: 'center' }}>Add Study Item</DialogTitle>
+                <DialogTitle style={{ textAlign: 'center', paddingBottom: '0px' }}>Add Study Item</DialogTitle>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <DialogContent>
+                    <DialogContent >
                         <TextField
-                            margin="dense"
+                            margin="normal"
                             label="Title"
                             type="text"
                             fullWidth
+                            style={{ marginTop: 0 }}
                             {...register('title', { required: "Title is required" })}
                             error={!!errors.title}
                             helperText={errors.title?.message}
@@ -221,7 +233,7 @@ function Study() {
                                     <MenuItem key={index} value={category}>{category}</MenuItem>
                                 ))}
                             </Select>
-                            {errors.category && <p>{errors.category.message}</p>}
+                            <FormHelperText sx={{color:'#d32f2f'}}>{errors.category?.message}</FormHelperText>
                         </FormControl>
                         <TextField
                             margin="dense"
@@ -270,7 +282,7 @@ function Study() {
             </Dialog>
 
 
-{/* // Snackbar to provide hints */}
+            {/* // Snackbar to provide hints */}
             <Snackbar
                 open={snackbarOpen}
                 autoHideDuration={6000}

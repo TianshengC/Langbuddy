@@ -111,13 +111,13 @@ app.post('/login',
 
         const token = jwt.sign(
             { user_id: user.rows[0].id_user, username: user.rows[0].username },
-            process.env.JWT_SECRET, { expiresIn: "1h" }
+            process.env.JWT_SECRET, { expiresIn: "24h" }
         );
 
         res.setHeader('Set-Cookie', cookie.serialize('token', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 60 * 60,
+          maxAge: 60 * 60 * 24 , // 1 day
           path: '/',
           sameSite: 'strict'
         }));
@@ -158,12 +158,13 @@ app.post('/logout', (req, res) => {
   });
   
 
-// User Profile
+
 
 
 // CRUD for Study Items
 
-app.get('/study', async (req, res) => {
+//get all study items by status
+app.get('/study/status/:status', async (req, res) => {
   try {
       const token = req.cookies.token;
 
@@ -173,10 +174,11 @@ app.get('/study', async (req, res) => {
 
       const decoded = await jwtVerify(token, process.env.JWT_SECRET);
       const userId = decoded.user_id;
+      const status = req.params.status;
 
       const studyItems = await pool.query(
-          "SELECT * FROM study_items WHERE id_user = $1",
-          [userId]
+          "SELECT * FROM study_items WHERE id_user = $1 AND status = $2",
+          [userId, status]
       );
 
       res.json(studyItems.rows);
@@ -186,6 +188,8 @@ app.get('/study', async (req, res) => {
   }
 });
 
+
+// create a study item
 app.post('/study', async (req, res) => {
   try {
       const token = req.cookies.token;
@@ -213,7 +217,7 @@ app.post('/study', async (req, res) => {
 });
 
 // update a study item status
-app.patch('/study/status/:id_study', async (req, res) => {
+app.patch('/study/change-status/:id_study', async (req, res) => {
     try {
         const token = req.cookies.token;
 
@@ -251,7 +255,7 @@ app.patch('/study/status/:id_study', async (req, res) => {
 });
 
 //edit a study item
-app.patch('/study/:id_study', async (req, res) => {
+app.patch('/study/edit/:id_study', async (req, res) => {
     try {
         const token = req.cookies.token;
 
@@ -282,7 +286,88 @@ app.patch('/study/:id_study', async (req, res) => {
 });
 
 
+// Review Items and Review Sessions CRUD
 
+//get all review items and sessions by status
+
+
+
+
+
+//create a review item and related review sessions
+app.post('/review', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+  
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
+  
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
+  
+        
+        // Destructure the values from req.body
+        const { category, title, content, review_pattern, firstReviewDate } = req.body;
+        console.log(req.body);
+        console.log(category, title, content, review_pattern, firstReviewDate);
+
+        // Start a transaction
+        await pool.query('BEGIN');
+  
+        // Insert the new review item and get the ID of the newly created item
+        const newReviewItem = await pool.query(
+            "INSERT INTO review_items (id_user, category, title, content, created_date) VALUES ($1, $2, $3, $4, NOW()) RETURNING id_review",
+            [userId, category, title, content]
+        );
+  
+        const reviewItemId = newReviewItem.rows[0].id_review;
+        
+
+        // Create the array of review dates and tempDate to be used in the loop
+        let scheduledDates;
+        const tempDate = firstReviewDate? new Date(firstReviewDate) : new Date();
+  
+        // Create the array of review dates based on the selected pattern
+        if (review_pattern === 'Simple') {
+          scheduledDates = [1, 3, 7].map(day => {
+              const date = new Date(tempDate);
+              date.setDate(date.getDate() + day);
+              return date;
+          });
+        } else if (review_pattern === 'Normal') {
+          scheduledDates = [1, 2, 4, 7, 14].map(day => {
+              const date = new Date(tempDate);
+              date.setDate(date.getDate() + day);
+              return date;
+          });
+        } else {
+          // In case of custom pattern, only the first review date is set
+          scheduledDates = [tempDate];
+        }
+  
+        // Insert the corresponding review sessions
+        for (let date of scheduledDates) {
+            await pool.query(
+                "INSERT INTO review_sessions (id_review, scheduled_date, status) VALUES ($1, $2, 'Scheduled')",
+                [reviewItemId, date]
+            );
+        }
+  
+        // Commit the transaction
+        await pool.query('COMMIT');
+  
+        //TODO: return the message to the frontend
+        res.json(newReviewItem.rows[0]);
+        console.log("New review item created: " + newReviewItem.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        // If any error occurs, rollback the transaction
+        await pool.query('ROLLBACK');
+        res.status(500).json("Server error");
+    }
+  });
+  
 
 
 

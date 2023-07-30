@@ -26,10 +26,7 @@ function Copyright() {
               px: 0,
               mt: 'auto',
               backgroundColor: grey[200],
-              position:'fixed', 
-              bottom: 0, 
-              left: 0, 
-              right: 0
+              position:'relative', 
             }}
           >
             <Container maxWidth="sm">
@@ -39,10 +36,6 @@ function Copyright() {
           </Box>
     );
   }
-
-  {/* <Paper sx={{position:'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
-<Typography align="center" variant="caption" display="block" gutterBottom>© 2023 Justin Chen. All rights reserved.</Typography>
-</Paper> */}
 
 export default Footer;
 
