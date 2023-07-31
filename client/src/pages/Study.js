@@ -157,31 +157,6 @@ function Study() {
                             Canceled
                         </Button>
                     </ButtonGroup>
-                    {/* {statusFilter === 'Scheduled' && (
-                        <ButtonGroup variant="contained" aria-label="outlined primary button group" sx={{ mt: 0.5 }}>
-                            <Button
-                                onClick={() => setPeriodFilter('Today')}
-                                variant={periodFilter === 'Today' ? 'contained' : 'outlined'}
-                                color={periodFilter === 'Today' ? 'primary' : 'default'}
-                            >
-                                Today
-                            </Button>
-                            <Button
-                                onClick={() => setPeriodFilter('7 days')}
-                                variant={periodFilter === '7 days' ? 'contained' : 'outlined'}
-                                color={periodFilter === '7 days' ? 'primary' : 'default'}
-                            >
-                                Next 7 days
-                            </Button>
-                            <Button
-                                onClick={() => setPeriodFilter('All')}
-                                variant={periodFilter === 'All' ? 'contained' : 'outlined'}
-                                color={periodFilter === 'All' ? 'primary' : 'default'}
-                            >
-                                All
-                            </Button>
-                        </ButtonGroup>
-                    )} */}
                     <Grid container spacing={3}>
                         {displayedStudyItems.map((studyItem, index) => (
                             <StudyTask

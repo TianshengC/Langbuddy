@@ -33,48 +33,48 @@ app.get('/signup', async (req, res) => {
     res.send('Sign up')
 })
 
-app.post('/signup', 
-  // validation middleware
-  [
-    check('username').notEmpty().withMessage('Username is required'),
-    check('user_email').isEmail().withMessage('Must be a valid email'),
-    check('password').matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/).withMessage('Password must be at least 8 characters and contain at least one letter and one number'),
-    check('mother_language').notEmpty().withMessage('Mother language is required')
-  ],
-  async (req, res) => {
-  // check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-        const { username, user_email, password, mother_language } = req.body;
-
-        const saltRounds = 10; 
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        const userExists = await pool.query(
-            "SELECT * FROM users WHERE user_email = $1",
-            [user_email]
-        );
-
-        if (userExists.rowCount > 0) {
-            res.status(400).json({ message: "Email already exists" });
-            return;
+app.post('/signup',
+    // validation middleware
+    [
+        check('username').notEmpty().withMessage('Username is required'),
+        check('user_email').isEmail().withMessage('Must be a valid email'),
+        check('password').matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/).withMessage('Password must be at least 8 characters and contain at least one letter and one number'),
+        check('mother_language').notEmpty().withMessage('Mother language is required')
+    ],
+    async (req, res) => {
+        // check for validation errors
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
         }
 
-        const newUser = await pool.query(
-            "INSERT INTO users (username, user_email, password_hash, created_date, mother_language) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-            [username, user_email, hashedPassword, new Date(), mother_language]
-        );
-        res.json(newUser.rows[0]);
-        console.log("New user created: " + newUser.rows[0].username);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ message: "Server error" });
-    }
-})
+        try {
+            const { username, user_email, password, mother_language } = req.body;
+
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+            const userExists = await pool.query(
+                "SELECT * FROM users WHERE user_email = $1",
+                [user_email]
+            );
+
+            if (userExists.rowCount > 0) {
+                res.status(400).json({ message: "Email already exists" });
+                return;
+            }
+
+            const newUser = await pool.query(
+                "INSERT INTO users (username, user_email, password_hash, created_date, mother_language) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+                [username, user_email, hashedPassword, new Date(), mother_language]
+            );
+            res.json(newUser.rows[0]);
+            console.log("New user created: " + newUser.rows[0].username);
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).json({ message: "Server error" });
+        }
+    })
 
 app.get('/login', async (req, res) => {
     res.send('Login')
@@ -82,81 +82,81 @@ app.get('/login', async (req, res) => {
 
 app.post('/login',
     [
-      check('user_email').isEmail().withMessage('Must be a valid email'),
-      check('password').matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/).withMessage('Password must be at least 8 characters and contain at least one letter and one number'),
+        check('user_email').isEmail().withMessage('Must be a valid email'),
+        check('password').matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/).withMessage('Password must be at least 8 characters and contain at least one letter and one number'),
     ],
     async (req, res) => {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
-
-      try {
-        const { user_email, password } = req.body;
-
-        const user = await pool.query(
-            "SELECT * FROM users WHERE user_email = $1",
-            [user_email]
-        );
-
-        if (user.rows.length === 0) {
-            return res.status(401).json("Invalid Email or password");
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
         }
 
-        const validPassword = await bcrypt.compare(password, user.rows[0].password_hash);
+        try {
+            const { user_email, password } = req.body;
 
-        if (!validPassword) {
-            return res.status(401).json("Invalid Email or password");
+            const user = await pool.query(
+                "SELECT * FROM users WHERE user_email = $1",
+                [user_email]
+            );
+
+            if (user.rows.length === 0) {
+                return res.status(401).json("Invalid Email or password");
+            }
+
+            const validPassword = await bcrypt.compare(password, user.rows[0].password_hash);
+
+            if (!validPassword) {
+                return res.status(401).json("Invalid Email or password");
+            }
+
+            const token = jwt.sign(
+                { user_id: user.rows[0].id_user, username: user.rows[0].username },
+                process.env.JWT_SECRET, { expiresIn: "24h" }
+            );
+
+            res.setHeader('Set-Cookie', cookie.serialize('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 60 * 60 * 24, // 1 day
+                path: '/',
+                sameSite: 'strict'
+            }));
+
+            res.json({ 'id_user': user.rows[0].id_user, 'username': user.rows[0].username });
+            console.log("backend success login: " + user.rows[0].user_email);
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).json("Server error");
         }
-
-        const token = jwt.sign(
-            { user_id: user.rows[0].id_user, username: user.rows[0].username },
-            process.env.JWT_SECRET, { expiresIn: "24h" }
-        );
-
-        res.setHeader('Set-Cookie', cookie.serialize('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 60 * 60 * 24 , // 1 day
-          path: '/',
-          sameSite: 'strict'
-        }));
-
-        res.json({ 'id_user':user.rows[0].id_user, 'username': user.rows[0].username });
-        console.log("backend success login: "+ user.rows[0].user_email);
-      } catch (err) {
-        console.error(err.message);
-        res.status(500).json("Server error");
-      }
-})
+    })
 
 //token verification and decode the token to set currentUser data
 app.get('/me', async (req, res) => {
-  try {
-      const token = req.cookies.token;
+    try {
+        const token = req.cookies.token;
 
-      if (!token) {
-          return res.status(401).json("No token provided");
-      }
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
 
-      // If the token is valid, get the decoded data
-      const decoded = await jwtVerify(token, process.env.JWT_SECRET);
-      
-      res.json({ 'id_user': decoded.user_id, 'username': decoded.username });
-  } catch (err) {
-      if (err instanceof jwt.JsonWebTokenError) {
-          return res.status(401).json("Unauthorized");
-      }
-      console.error(err.message);
-      res.status(500).json("Server error");
-  }
+        // If the token is valid, get the decoded data
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+
+        res.json({ 'id_user': decoded.user_id, 'username': decoded.username });
+    } catch (err) {
+        if (err instanceof jwt.JsonWebTokenError) {
+            return res.status(401).json("Unauthorized");
+        }
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
 });
 
 app.post('/logout', (req, res) => {
     res.clearCookie('token');
     res.json({ message: 'Logged out' });
-  });
-  
+});
+
 
 
 
@@ -165,55 +165,55 @@ app.post('/logout', (req, res) => {
 
 //get all study items by status
 app.get('/study/status/:status', async (req, res) => {
-  try {
-      const token = req.cookies.token;
+    try {
+        const token = req.cookies.token;
 
-      if (!token) {
-          return res.status(401).json("No token provided");
-      }
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
 
-      const decoded = await jwtVerify(token, process.env.JWT_SECRET);
-      const userId = decoded.user_id;
-      const status = req.params.status;
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
+        const status = req.params.status;
 
-      const studyItems = await pool.query(
-          "SELECT * FROM study_items WHERE id_user = $1 AND status = $2",
-          [userId, status]
-      );
+        const studyItems = await pool.query(
+            "SELECT * FROM study_items WHERE id_user = $1 AND status = $2",
+            [userId, status]
+        );
 
-      res.json(studyItems.rows);
-  } catch (err) {
-      console.error(err.message);
-      res.status(500).json("Server error");
-  }
+        res.json(studyItems.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
 });
 
 
 // create a study item
 app.post('/study', async (req, res) => {
-  try {
-      const token = req.cookies.token;
+    try {
+        const token = req.cookies.token;
 
-      if (!token) {
-          return res.status(401).json("No token provided");
-      }
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
 
-      const decoded = await jwtVerify(token, process.env.JWT_SECRET);
-      const userId = decoded.user_id;
-      
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
 
-      const { category, title, content, scheduled_date } = req.body;
 
-      const newStudyItem = await pool.query(
-          "INSERT INTO study_items (id_user, category, title, content, created_date, scheduled_date, status) VALUES ($1, $2, $3, $4, NOW(), $5, 'Scheduled') RETURNING *",
-          [userId, category, title, content, scheduled_date]
-      );
+        const { category, title, content, scheduled_date } = req.body;
 
-      res.json(newStudyItem.rows[0]);
-  } catch (err) {
-      console.error(err.message);
-      res.status(500).json("Server error");
-  }
+        const newStudyItem = await pool.query(
+            "INSERT INTO study_items (id_user, category, title, content, created_date, scheduled_date, status) VALUES ($1, $2, $3, $4, NOW(), $5, 'Scheduled') RETURNING *",
+            [userId, category, title, content, scheduled_date]
+        );
+
+        res.json(newStudyItem.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
 });
 
 // update a study item status
@@ -289,6 +289,68 @@ app.patch('/study/edit/:id_study', async (req, res) => {
 // Review Items and Review Sessions CRUD
 
 //get all review items and sessions by status
+app.get('/review/status/:status', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
+        const status = req.params.status;
+
+        // Different queries based on the status
+        let query;
+        switch (status) {
+            case "Scheduled":
+                query = `
+          SELECT i.* FROM Review_Items i 
+          JOIN Review_Sessions s ON i.id_review = s.id_review 
+          WHERE i.id_user = $1 AND s.status = 'Scheduled' 
+          GROUP BY i.id_review
+        `;
+                break;
+            case "Canceled":
+                query = `
+          SELECT i.* FROM Review_Items i 
+          JOIN Review_Sessions s ON i.id_review = s.id_review 
+          WHERE i.id_user = $1 
+          GROUP BY i.id_review
+          HAVING COUNT(*) FILTER (WHERE s.status != 'Canceled') = 0
+        `;
+                break;
+            case "Finished":
+                query = `
+          SELECT i.* FROM Review_Items i 
+          JOIN Review_Sessions s ON i.id_review = s.id_review 
+          WHERE i.id_user = $1 
+          GROUP BY i.id_review
+          HAVING COUNT(*) FILTER (WHERE s.status = 'Finished') > 0 
+            AND COUNT(*) FILTER (WHERE s.status = 'Scheduled') = 0
+        `;
+                break;
+        }
+
+        const reviewItems = await pool.query(query, [userId]);
+
+        // Get sessions for each review item
+        for (let item of reviewItems.rows) {
+            const sessions = await pool.query(
+                "SELECT * FROM Review_Sessions WHERE id_review = $1",
+                [item.id_review]
+            );
+            item.reviewSessions = sessions.rows;
+        }
+
+        res.json(reviewItems.rows);
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
 
 
 
@@ -298,15 +360,15 @@ app.patch('/study/edit/:id_study', async (req, res) => {
 app.post('/review', async (req, res) => {
     try {
         const token = req.cookies.token;
-  
+
         if (!token) {
             return res.status(401).json("No token provided");
         }
-  
+
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
         const userId = decoded.user_id;
-  
-        
+
+
         // Destructure the values from req.body
         const { category, title, content, review_pattern, firstReviewDate } = req.body;
         console.log(req.body);
@@ -314,49 +376,49 @@ app.post('/review', async (req, res) => {
 
         // Start a transaction
         await pool.query('BEGIN');
-  
+
         // Insert the new review item and get the ID of the newly created item
         const newReviewItem = await pool.query(
             "INSERT INTO review_items (id_user, category, title, content, created_date) VALUES ($1, $2, $3, $4, NOW()) RETURNING id_review",
             [userId, category, title, content]
         );
-  
+
         const reviewItemId = newReviewItem.rows[0].id_review;
-        
+
 
         // Create the array of review dates and tempDate to be used in the loop
         let scheduledDates;
-        const tempDate = firstReviewDate? new Date(firstReviewDate) : new Date();
-  
+        const tempDate = firstReviewDate ? new Date(firstReviewDate) : new Date();
+
         // Create the array of review dates based on the selected pattern
         if (review_pattern === 'Simple') {
-          scheduledDates = [1, 3, 7].map(day => {
-              const date = new Date(tempDate);
-              date.setDate(date.getDate() + day);
-              return date;
-          });
+            scheduledDates = [1, 3, 7].map(day => {
+                const date = new Date(tempDate);
+                date.setDate(date.getDate() + day);
+                return date;
+            });
         } else if (review_pattern === 'Normal') {
-          scheduledDates = [1, 2, 4, 7, 14].map(day => {
-              const date = new Date(tempDate);
-              date.setDate(date.getDate() + day);
-              return date;
-          });
+            scheduledDates = [1, 2, 4, 7, 14].map(day => {
+                const date = new Date(tempDate);
+                date.setDate(date.getDate() + day);
+                return date;
+            });
         } else {
-          // In case of custom pattern, only the first review date is set
-          scheduledDates = [tempDate];
+            // In case of custom pattern, only the first review date is set
+            scheduledDates = [tempDate];
         }
-  
+
         // Insert the corresponding review sessions
         for (let date of scheduledDates) {
             await pool.query(
-                "INSERT INTO review_sessions (id_review, scheduled_date, status) VALUES ($1, $2, 'Scheduled')",
+                "INSERT INTO review_sessions (id_review, scheduled_date, status, created_date) VALUES ($1, $2, 'Scheduled', NOW())",
                 [reviewItemId, date]
             );
         }
-  
+
         // Commit the transaction
         await pool.query('COMMIT');
-  
+
         //TODO: return the message to the frontend
         res.json(newReviewItem.rows[0]);
         console.log("New review item created: " + newReviewItem.rows[0]);
@@ -366,8 +428,8 @@ app.post('/review', async (req, res) => {
         await pool.query('ROLLBACK');
         res.status(500).json("Server error");
     }
-  });
-  
+});
+
 
 
 

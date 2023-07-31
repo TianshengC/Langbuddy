@@ -4,7 +4,6 @@ import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { useEffect, useState } from "react";
 import Paper from '@mui/material/Paper';
-import StudyTask from "../components/StudyTask";
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Fab from '@mui/material/Fab';
@@ -24,7 +23,8 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import categories from '../utils/categories';
 import FormHelperText from '@mui/material/FormHelperText';
-
+import reviewItems from "../utils/reviewItems";
+import ReviewTask from "../components/ReviewTask";
 
 
 
@@ -32,15 +32,14 @@ import FormHelperText from '@mui/material/FormHelperText';
 
 function Review() {
 
-    // const [selectedPeriod, setSelectedPeriod] = useState('Today');
+
     const [modalOpen, setModalOpen] = useState(false);
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-    const [displayedReviewItems, setDisplayedReviewItems] = useState([]);
+    const [displayedReviewItems, setDisplayedReviewItems] = useState(reviewItems);
     const [statusFilter, setStatusFilter] = useState('Scheduled');
-    // const [periodFilter, setPeriodFilter] = useState('Today');
     const [selectedPattern, setSelectedPattern] = useState(false);
 
 
@@ -54,11 +53,12 @@ function Review() {
         reset();  // Reset form state upon modal close
     };
 
-    //get all scheduled study items by status(to do)
+
+    //get all scheduled review items by status
     useEffect(() => {
-        const getDisplayerStudyItems = async () => {
+        const getDisplayedReviewItems = async () => {
             try {
-                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/study/status/${statusFilter}`, {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/review/status/${statusFilter}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -69,28 +69,27 @@ function Review() {
                 if (response.ok) {
                     const result = await response.json();
                     // Sort the data based on 'scheduled_date' or 'finished_date' field
-                    result.sort((a, b) => {
-                        if (statusFilter === 'Scheduled') {
-                            let dateA = new Date(a.scheduled_date), dateB = new Date(b.scheduled_date);
-                            return dateA - dateB; // Ascending order for 'Scheduled'
-                        } else { // For 'Finished' and 'Canceled'
-                            let dateA = new Date(a.finished_date), dateB = new Date(b.finished_date);
-                            return dateB - dateA; // Descending order for 'Finished' and 'Canceled'
-                        }
-                    });
+                    // result.sort((a, b) => {
+                    //     if (statusFilter === 'Scheduled') {
+                    //         let dateA = new Date(a.scheduled_date), dateB = new Date(b.scheduled_date);
+                    //         return dateA - dateB; // Ascending order for 'Scheduled'
+                    //     } else { // For 'Finished' and 'Canceled'
+                    //         let dateA = new Date(a.finished_date), dateB = new Date(b.finished_date);
+                    //         return dateB - dateA; // Descending order for 'Finished' and 'Canceled'
+                    //     }
+                    // });
                     setDisplayedReviewItems(result);
                 } else {
-                    throw new Error('Failed to fetch study items');
+                    const error = await response.text();
+                    throw new Error(error);
                 }
             } catch (err) {
                 console.error(err.message);
             }
         };
 
-        getDisplayerStudyItems();
+        getDisplayedReviewItems();
     }, [statusFilter]);
-
-
 
 
 
@@ -111,7 +110,7 @@ function Review() {
                 const result = await response.json();
                 console.log(result);
                 if (statusFilter === 'Scheduled') {
-                    setDisplayedReviewItems(prevStudyItems => [...prevStudyItems, result]);
+                    setDisplayedReviewItems(prevDisplayedReviewItems => [...prevDisplayedReviewItems, result]);
                 }
                 setSnackbarMessage('Review item created successfully');
                 setSnackbarSeverity('success');
@@ -134,7 +133,7 @@ function Review() {
         <Container>
             <Paper elevation={3} style={{ minHeight: '100vh', marginTop: '0px', marginBottom: '0px' }} >
                 <Box display="flex" flexDirection="column" alignItems="center">
-                    <Typography variant="h4" component="div" gutterBottom align="center">
+                    <Typography variant="h4" gutterBottom align="center">
                         Review Overview
                     </Typography>
                     <ButtonGroup variant="contained" aria-label="outlined primary button group" sx={{ mt: 0.5 }}>
@@ -160,38 +159,14 @@ function Review() {
                             Canceled
                         </Button>
                     </ButtonGroup>
-                    {/* {statusFilter === 'Scheduled' && (
-                        <ButtonGroup variant="contained" aria-label="outlined primary button group" sx={{ mt: 0.5 }}>
-                            <Button
-                                onClick={() => setPeriodFilter('Today')}
-                                variant={periodFilter === 'Today' ? 'contained' : 'outlined'}
-                                color={periodFilter === 'Today' ? 'primary' : 'default'}
-                            >
-                                Today
-                            </Button>
-                            <Button
-                                onClick={() => setPeriodFilter('7 days')}
-                                variant={periodFilter === '7 days' ? 'contained' : 'outlined'}
-                                color={periodFilter === '7 days' ? 'primary' : 'default'}
-                            >
-                                Next 7 days
-                            </Button>
-                            <Button
-                                onClick={() => setPeriodFilter('All')}
-                                variant={periodFilter === 'All' ? 'contained' : 'outlined'}
-                                color={periodFilter === 'All' ? 'primary' : 'default'}
-                            >
-                                All
-                            </Button>
-                        </ButtonGroup>
-                    )} */}
+
                     <Grid container spacing={3}>
-                        {displayedReviewItems.map((studyItem, index) => (
-                            <StudyTask
+                        {displayedReviewItems.map((reviewItem, index) => (
+                            <ReviewTask
                                 key={index}
-                                studyItem={studyItem}
-                                studyItems={displayedReviewItems}
-                                setStudyItems={setDisplayedReviewItems}
+                                reviewItem={reviewItem}
+                                displayedReviewItems={displayedReviewItems}
+                                setDisplayedReviewItems={setDisplayedReviewItems}
                                 snackbarOpen={snackbarOpen}
                                 setSnackbarOpen={setSnackbarOpen}
                                 snackbarMessage={snackbarMessage}
@@ -236,7 +211,7 @@ function Review() {
                                     <MenuItem key={index} value={category}>{category}</MenuItem>
                                 ))}
                             </Select>
-                            <FormHelperText sx={{color:'#d32f2f'}}>{errors.category?.message}</FormHelperText>
+                            <FormHelperText sx={{ color: '#d32f2f' }}>{errors.category?.message}</FormHelperText>
                         </FormControl>
                         <TextField
                             margin="dense"
@@ -250,22 +225,22 @@ function Review() {
                             error={!!errors.content}
                             helperText={errors.content?.message}
                         />
-                         <FormControl fullWidth margin="dense">
-                <InputLabel id="review-pattern-label">Review Pattern</InputLabel>
-                <Select
-                    labelId="review-pattern-label"
-                    {...register('review_pattern', { required: "Review Pattern is required" })}
-                    error={!!errors.review_pattern}
-                    label="Review Pattern"
-                    onChange={(e) => setSelectedPattern(e.target.value)}
-                >
-                    <MenuItem value="Simple">Default - Simple (1st, 3rd, 7th days)</MenuItem>
-                    <MenuItem value="Normal">Default - Normal (1st, 2nd, 4th, 7th, 14th days)</MenuItem>
-                    <MenuItem value="Custom">Custom</MenuItem>
-                </Select>
-                {errors.review_pattern && <p>{errors.review_pattern.message}</p>}
-            </FormControl>
-            {selectedPattern === 'Custom' && (
+                        <FormControl fullWidth margin="dense">
+                            <InputLabel id="review-pattern-label">Review Pattern</InputLabel>
+                            <Select
+                                labelId="review-pattern-label"
+                                {...register('review_pattern', { required: "Review Pattern is required" })}
+                                error={!!errors.review_pattern}
+                                label="Review Pattern"
+                                onChange={(e) => setSelectedPattern(e.target.value)}
+                            >
+                                <MenuItem value="Simple">Default - Simple (1st, 3rd, 7th days)</MenuItem>
+                                <MenuItem value="Normal">Default - Normal (1st, 2nd, 4th, 7th, 14th days)</MenuItem>
+                                <MenuItem value="Custom">Custom</MenuItem>
+                            </Select>
+                            {errors.review_pattern && <p>{errors.review_pattern.message}</p>}
+                        </FormControl>
+                        {selectedPattern === 'Custom' && (
                             <TextField
                                 margin="dense"
                                 label="First Review Date"
@@ -293,6 +268,9 @@ function Review() {
                                 helperText={errors.firstReviewDate?.message}
                             />
                         )}
+                        {selectedPattern === 'Custom' && (<Typography variant="body2" gutterBottom align="left">
+                            You can add more review sessions later.
+                        </Typography>)}
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleModalClose}>Cancel</Button>

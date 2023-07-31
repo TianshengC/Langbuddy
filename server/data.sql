@@ -38,7 +38,9 @@ CREATE TABLE Review_Items (
 CREATE TABLE Review_Sessions (
     id_session SERIAL PRIMARY KEY,
     id_review INTEGER NOT NULL REFERENCES Review_Items(id_review) ON DELETE CASCADE,
+    created_date TIMESTAMP NOT NULL,
     scheduled_date DATE NOT NULL,
+    finished_date DATE,
     status VARCHAR(20) NOT NULL CHECK (status IN ('Scheduled', 'Finished', 'Canceled'))
 );
 

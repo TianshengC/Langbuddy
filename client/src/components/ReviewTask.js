@@ -4,7 +4,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import { useForm } from 'react-hook-form';
+import { useForm,Controller } from 'react-hook-form';
 import formatDate from '../utils/FormatDate';
 import TextField from '@mui/material/TextField';
 import FormControl from '@mui/material/FormControl';
@@ -12,13 +12,14 @@ import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import categories from '../utils/categories';
+import ReviewSessionItem from './ReviewSessionItem';
 
 
 
 function ReviewTask({
-    studyItem,
-    studyItems,
-    setStudyItems,
+    reviewItem,
+    displayedReviewSessionItems,
+    setDisplayedReviewSessionItems,
     snackbarOpen,
     setSnackbarOpen,
     snackbarMessage,
@@ -26,16 +27,17 @@ function ReviewTask({
     snackbarSeverity,
     setSnackbarSeverity, 
 }) {
-    const { category, title, content, created_date, scheduled_date, finished_date, status } = studyItem;
+    const { id_review, category, title, content, created_date, reviewSessions } = reviewItem;
+    console.log(reviewItem);
 
     const formattedCreateDate = new Date(created_date).toLocaleDateString();
-    const formattedScheduledDate = new Date(scheduled_date).toLocaleDateString();
-    const formattedFinishedDate = finished_date ? new Date(finished_date).toLocaleDateString() : null;
+    // const formattedScheduledDate = new Date(scheduled_date).toLocaleDateString();
+    // const formattedFinishedDate = finished_date ? new Date(finished_date).toLocaleDateString() : null;
     const [dialogOpen, setDialogOpen] = useState(false);
     const [confirmStatusChangeOpen, setConfirmStatusChangeOpen] = useState(false);
     const [newStatus, setNewStatus] = useState(null);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const { register, handleSubmit, formState: { errors }, setValue } = useForm();
+    const { register, handleSubmit, formState: { errors }, setValue, control } = useForm();
     const [elevation, setElevation] = useState(3);
 
     const handleDialogOpen = () => {
@@ -43,17 +45,17 @@ function ReviewTask({
     };
 
     const handleEditDialogOpen = () => {
-        setValue('title', studyItem.title);
-        setValue('category', studyItem.category);
-        setValue('content', studyItem.content);
-        setValue('scheduled_date', formatDate(studyItem.scheduled_date));
+        console.log(reviewItem);
+        setValue('title', reviewItem.title);
+        setValue('category', reviewItem.category);
+        setValue('content', reviewItem.content);
         setEditDialogOpen(true);
     };
 
 
     const displayContent = content.length > 200 ? content.substring(0, 200) + "..." : content;
 
-    const statusDate = status === "Scheduled" ? formattedScheduledDate : formattedFinishedDate;
+    // const statusDate = status === "Scheduled" ? formattedScheduledDate : formattedFinishedDate;
 
     const handleStatusChange = (status) => {
         setNewStatus(status);
@@ -65,89 +67,47 @@ function ReviewTask({
         setConfirmStatusChangeOpen(false);
     };
 
-//Status(canceled and finished) confirmation submission
-    const confirmStatusChange = async () => {
-        try {
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/study/change-status/${studyItem.id_study}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include', // Ensures the request includes the cookie
-                body: JSON.stringify({ status: newStatus })
-            });
-
-            if (response.ok) {
-                const updatedStudyItem = await response.json();
-                // find the index of the studyItem in the array
-                const index = studyItems.findIndex(item => item.id_study === studyItem.id_study);
-
-
-                if (index !== -1) {
-                    const newStudyItems = [...studyItems];
-                    newStudyItems[index] = updatedStudyItem;
-                    setStudyItems(newStudyItems);
-                }
-
-                setSnackbarMessage('Study item updated successfully');
-                setSnackbarSeverity('success');
-            } else {
-                const error = await response.text();
-                throw new Error(error);
-            }
-        } catch (err) {
-            console.error(err.message);
-            setSnackbarMessage('Error updating study item');
-            setSnackbarSeverity('error');
-        }
-
-        setConfirmStatusChangeOpen(false);
-        setNewStatus(null);
-        setSnackbarOpen(true);
-    };
-
-
 //Edit study item submission
-    const onEditSubmit = async data => {
-        try {
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/study/edit/${studyItem.id_study}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include', // Ensures the request includes the cookie
-                body: JSON.stringify({
-                    title: data.title,
-                    category: data.category,
-                    content: data.content,
-                    scheduled_date: data.scheduled_date
-                })
-            });
+const onEditSubmit = async data => {
+    try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/study/edit/${reviewItem.id_study}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Ensures the request includes the cookie
+            body: JSON.stringify({
+                title: data.title,
+                category: data.category,
+                content: data.content,
+                scheduled_date: data.scheduled_date
+            })
+        });
 
-            if (response.ok) {
-                const updatedStudyItem = await response.json();
-                const index = studyItems.findIndex(item => item.id_study === studyItem.id_study);
-                if (index !== -1) {
-                    const newStudyItems = [...studyItems];
-                    newStudyItems[index] = updatedStudyItem;
-                    setStudyItems(newStudyItems);
-                }
+        if (response.ok) {
+            // const updatedReviewItem = await response.json();
+            // const index = displayedReviewSessionItems.findIndex(item => item.id_review === reviewItem.id_review);
+            // if (index !== -1) {
+            //     const newReviewItems = [...displayedReviewSessionItems];
+            //     newReviewItems[index] = updatedReviewItem;
+            //     setDisplayedReviewSessionItems(newReviewItems);
+            // }
 
-                setSnackbarMessage('Study item updated successfully');
-                setSnackbarSeverity('success');
-            } else {
-                const error = await response.text();
-                throw new Error(error);
-            }
-        } catch (err) {
-            console.error(err.message);
-            setSnackbarMessage('Error updating study item');
-            setSnackbarSeverity('error');
+            setSnackbarMessage('Review item updated successfully');
+            setSnackbarSeverity('success');
+        } else {
+            const error = await response.text();
+            throw new Error(error);
         }
+    } catch (err) {
+        console.error(err.message);
+        setSnackbarMessage(err.message || 'Error updating review item');
+        setSnackbarSeverity('error');
+    }
 
-        setEditDialogOpen(false);
-        setSnackbarOpen(true);
-    };
+    setEditDialogOpen(false);
+    setSnackbarOpen(true);
+};
 
 //handle mouse over on the card
 
@@ -179,25 +139,18 @@ function ReviewTask({
                         </Typography>
                     </Box>
                     <Divider />
-                    <Box display="flex" justifyContent="space-between" alignItems="center" marginTop={1}>
-                        <Box>
-                            <Typography variant="body2" color="text.secondary">{`Created: ${formattedCreateDate}`}</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {status === "Scheduled" ? `Scheduled: ${statusDate}` : status === "Finished" ? `Finished: ${statusDate}` : `Canceled: ${statusDate}`}
-                            </Typography>
-                        </Box>
-                        <Typography variant="body2" color="text.secondary" marginLeft={2}>{status}</Typography>
+{/* Render the review sessions */}
+                    <Box display="flex" flexDirection="column" justifyContent="space-between" marginTop={1}>
+                        {reviewSessions.map((session, index) => <ReviewSessionItem key={index} session={session} sessionNumber={index+1}/>)}
                     </Box>
 
 {/* Action button */}
                     <Box display="flex" justifyContent="flex-end" marginTop={1}>
-                        {status === 'Scheduled' && <Button size="small" variant="outlined" color="success" onClick={() => handleStatusChange('Finished')}>Finish</Button>}
-                        {status === 'Scheduled' && <Button size="small" variant="outlined" color="error" onClick={() => handleStatusChange('Canceled')}>Cancel</Button>}
-                        {status === 'Scheduled' && <Button size="small" variant="outlined" color="primary" onClick={handleEditDialogOpen}>Edit</Button>}
-                        {status !== 'Scheduled' && <Chip label="ARCHIEVED" style={{backgroundColor: '#eeeeee'}} />}
+                    <Button size="small" variant="outlined" color="primary" onClick={handleEditDialogOpen}>Edit</Button>
                     </Box>
                 </CardContent>
             </Card>
+        
 
 {/* dialog for read more */}
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
@@ -217,39 +170,15 @@ function ReviewTask({
                         </Typography>
                     </Box>
                     <Divider />
-                    <Box display="flex" justifyContent="space-between" alignItems="center" marginTop={1}>
-                        <Box>
-                            <Typography variant="body2" color="text.secondary">{`Created: ${formattedCreateDate}`}</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {status === "Scheduled" ? `Scheduled: ${statusDate}` : status === "Finished" ? `Finished: ${statusDate}` : `Canceled: ${statusDate}`}
-                            </Typography>
-                        </Box>
-                        <Typography variant="body2" color="text.secondary" marginLeft={2}>{status}</Typography>
-                    </Box>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDialogOpen(false)}>Close</Button>
                 </DialogActions>
             </Dialog>
 
- {/* dialog for status change */}
-
-            <Dialog open={confirmStatusChangeOpen} onClose={() => setConfirmStatusChangeOpen(false)}>
-                <DialogTitle>Confirm Status Change</DialogTitle>
-                <DialogContent>
-                    <Typography variant="body1" color="text.secondary">
-                        {`Are you sure you want to change the status to ${newStatus}?`}
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={cancelStatusChange}>Cancel</Button>
-                    <Button onClick={confirmStatusChange}>Confirm</Button>
-                </DialogActions>
-            </Dialog>
-
-{/* dialog for edit */}
+{/* dialog for edit review item*/}
             <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
-                <DialogTitle style={{ textAlign: 'center' }}>Edit Study Item</DialogTitle>
+                <DialogTitle style={{ textAlign: 'center' }}>Edit Review Item</DialogTitle>
                 <form onSubmit={handleSubmit(onEditSubmit)}>
                     <DialogContent>
                         <TextField
@@ -287,15 +216,21 @@ function ReviewTask({
                             error={!!errors.content}
                             helperText={errors.content?.message}
                         />
-                        <TextField
-                            margin="dense"
-                            label="Scheduled Date"
-                            type="date"
-                            fullWidth
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            {...register('scheduled_date', {
+                        {reviewItem.reviewSessions.map((session, index) => {
+                if (session.status === "Finished" || session.status === "Canceled") {
+                    return (
+                        <Typography variant="body1" key={index}>
+                            Session {index+1} {session.status.toLowerCase()} date: {session.finished_date}
+                        </Typography>
+                    );
+                } else {
+                    return (
+                        <Controller
+                            key={index}
+                            name={`session_${index+1}`}
+                            control={control}
+                            defaultValue={formatDate(session.scheduled_date)}
+                            rules={{
                                 required: "Scheduled date is required",
                                 validate: {
                                     isFuture: value => {
@@ -309,10 +244,23 @@ function ReviewTask({
                                         return inputDate >= todaysDate || 'The date should not be in the past';
                                     }
                                 }
-                            })}
-                            error={!!errors.scheduled_date}
-                            helperText={errors.scheduled_date?.message}
+                            }}
+                            render={({ field }) => 
+                                <TextField
+                                    {...field}
+                                    margin="dense"
+                                    label={`Session ${index+1} Scheduled Date`}
+                                    type="date"
+                                    fullWidth
+                                    error={!!errors[`session_${index+1}`]}
+                                    helperText={errors[`session_${index+1}`]?.message}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                            }
                         />
+                    );
+                }
+            })}
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
@@ -320,8 +268,10 @@ function ReviewTask({
                     </DialogActions>
                 </form>
             </Dialog>
+
+
         </Grid>
-    );
+    ); 
 }
 
 export default ReviewTask;
