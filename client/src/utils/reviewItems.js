@@ -51,7 +51,6 @@ const reviewItems = [
                 "scheduled_date": "2023-06-02",
                 "finished_date": "2023-06-02",
                 "status": "Finished",
-                "session_number": 1
             },
             {
                 "id_session": 5,
@@ -60,7 +59,6 @@ const reviewItems = [
                 "scheduled_date": "2023-06-03",
                 "finished_date": null,
                 "status": "Scheduled",
-                "session_number": 2
             },
             {
                 "id_session": 6,
@@ -69,7 +67,6 @@ const reviewItems = [
                 "scheduled_date": "2023-06-04",
                 "finished_date": "2023-06-04",
                 "status": "Canceled",
-                "session_number": 3
             }
         ],
     },

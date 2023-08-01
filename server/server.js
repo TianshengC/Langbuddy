@@ -353,9 +353,6 @@ app.get('/review/status/:status', async (req, res) => {
 });
 
 
-
-
-
 //create a review item and related review sessions
 app.post('/review', async (req, res) => {
     try {
@@ -371,15 +368,14 @@ app.post('/review', async (req, res) => {
 
         // Destructure the values from req.body
         const { category, title, content, review_pattern, firstReviewDate } = req.body;
-        console.log(req.body);
-        console.log(category, title, content, review_pattern, firstReviewDate);
+
 
         // Start a transaction
         await pool.query('BEGIN');
 
         // Insert the new review item and get the ID of the newly created item
         const newReviewItem = await pool.query(
-            "INSERT INTO review_items (id_user, category, title, content, created_date) VALUES ($1, $2, $3, $4, NOW()) RETURNING id_review",
+            "INSERT INTO review_items (id_user, category, title, content, created_date) VALUES ($1, $2, $3, $4, NOW()) RETURNING *",
             [userId, category, title, content]
         );
 
@@ -389,6 +385,7 @@ app.post('/review', async (req, res) => {
         // Create the array of review dates and tempDate to be used in the loop
         let scheduledDates;
         const tempDate = firstReviewDate ? new Date(firstReviewDate) : new Date();
+
 
         // Create the array of review dates based on the selected pattern
         if (review_pattern === 'Simple') {
@@ -408,20 +405,25 @@ app.post('/review', async (req, res) => {
             scheduledDates = [tempDate];
         }
 
-        // Insert the corresponding review sessions
+        let reviewSessions = [];
+        // Create the corresponding review sessions
         for (let date of scheduledDates) {
-            await pool.query(
-                "INSERT INTO review_sessions (id_review, scheduled_date, status, created_date) VALUES ($1, $2, 'Scheduled', NOW())",
+            const newReviewSession = await pool.query(
+                "INSERT INTO review_sessions (id_review, scheduled_date, status, created_date) VALUES ($1, $2, 'Scheduled', NOW()) RETURNING id_session, id_review, scheduled_date, finished_date, status",
                 [reviewItemId, date]
             );
+
+            reviewSessions.push(newReviewSession.rows[0]);
         }
 
         // Commit the transaction
         await pool.query('COMMIT');
+        newReviewItem.rows[0].reviewSessions = reviewSessions;
 
         //TODO: return the message to the frontend
+        console.log(newReviewItem.rows[0])
         res.json(newReviewItem.rows[0]);
-        console.log("New review item created: " + newReviewItem.rows[0]);
+
     } catch (err) {
         console.error(err.message);
         // If any error occurs, rollback the transaction
@@ -430,9 +432,127 @@ app.post('/review', async (req, res) => {
     }
 });
 
+//update the status of a single review session
 
 
 
+
+
+//update a review item and relevant review sessions
+app.patch('/review/edit/:id_review', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+        const { id_review } = req.params;
+
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
+
+
+        // Destructure the values from req.body
+        const { category, title, content, reviewSessions } = req.body;
+
+
+        // Start a transaction
+        await pool.query('BEGIN');
+
+        // Check if the review item exists and the user has permission to edit it
+        const reviewItem = await pool.query(
+            "SELECT * FROM review_items WHERE id_review = $1 AND id_user = $2",
+            [id_review, userId]
+        );
+
+        if (reviewItem.rows.length === 0) {
+            return res.status(404).json("Review item not found or you don't have permission to edit it");
+        }
+
+        // Update review item
+        const updateReviewItem = await pool.query(
+            "UPDATE review_items SET category = $1, title = $2, content = $3 WHERE id_review = $4 AND id_user = $5 RETURNING *",
+            [category, title, content, id_review, userId]
+        );
+
+
+        // Update the corresponding review sessions
+        await Promise.all(reviewSessions.map(session => {
+            return pool.query(
+                "UPDATE review_sessions SET scheduled_date = $1 WHERE id_session = $2 AND id_review = $3",
+                [session.scheduled_date, session.id_session, id_review]
+            );
+        }));
+
+
+        // Insert the corresponding review sessions to the updated review item
+        const updatedReviewSessions = await pool.query(
+            "SELECT * FROM review_sessions WHERE id_review = $1",
+            [id_review]
+        );
+
+
+        updateReviewItem.rows[0].reviewSessions = updatedReviewSessions.rows;
+
+        // Commit the transaction
+        await pool.query('COMMIT');
+
+        //TODO: return the message to the frontend
+        res.json(updateReviewItem.rows[0]);
+
+    } catch (err) {
+        console.error(err.message);
+        // If any error occurs, rollback the transaction
+        await pool.query('ROLLBACK');
+        res.status(500).json("Server error");
+    }
+});
+
+// update a review session item status
+app.patch('/session/change-status/:id_session', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
+
+        const { id_session } = req.params;
+        const { status } = req.body;
+
+        // Fetch session first to validate user
+        const sessionItem = await pool.query(
+            "SELECT * FROM review_sessions INNER JOIN review_items ON review_sessions.id_review = review_items.id_review WHERE review_sessions.id_session = $1",
+            [id_session]
+        );
+
+        if (sessionItem.rows.length === 0) {
+            return res.status(404).json("No session item found.");
+        }
+
+        if (sessionItem.rows[0].id_user !== userId) {
+            return res.status(403).json("You are not authorized to modify this session.");
+        }
+
+        let updatedSessionItem;
+
+        if (status === "Finished" || status === "Canceled") {
+            updatedSessionItem = await pool.query(
+                "UPDATE review_sessions SET status = $1, finished_date = NOW() WHERE id_session = $2 RETURNING *",
+                [status, id_session]
+            );
+            res.json(updatedSessionItem.rows[0]);
+        } else {
+            res.status(400).json("Invalid status.");
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
 
 
 

@@ -39,6 +39,7 @@ function Study() {
     const [snackbarSeverity, setSnackbarSeverity] = useState('success');
     const [displayedStudyItems, setDisplayedStudyItems] = useState([]);
     const [statusFilter, setStatusFilter] = useState('Scheduled');
+    const [loadingState, setLoadingState] = useState(true);
     // const [periodFilter, setPeriodFilter] = useState('Today');
 
     const handleModalOpen = () => {
@@ -79,9 +80,21 @@ function Study() {
                     const error = await response.text();
                     throw new Error(error);
                 }
+
+
             } catch (err) {
                 console.error(err.message);
+            } finally {
+                setLoadingState(false);
             }
+        
+            if(loadingState === true) {
+                return <Typography variant="h6" component="div" gutterBottom align="center">
+                Loading...
+            </Typography>
+            }
+            
+        
         };
 
         getDisplayerStudyItems();

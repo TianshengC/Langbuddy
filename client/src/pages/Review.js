@@ -38,10 +38,10 @@ function Review() {
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-    const [displayedReviewItems, setDisplayedReviewItems] = useState(reviewItems);
+    const [displayedReviewItems, setDisplayedReviewItems] = useState([]);
     const [statusFilter, setStatusFilter] = useState('Scheduled');
     const [selectedPattern, setSelectedPattern] = useState(false);
-
+    const [loadingState, setLoadingState] = useState(true);
 
 
     const handleModalOpen = () => {
@@ -68,16 +68,7 @@ function Review() {
 
                 if (response.ok) {
                     const result = await response.json();
-                    // Sort the data based on 'scheduled_date' or 'finished_date' field
-                    // result.sort((a, b) => {
-                    //     if (statusFilter === 'Scheduled') {
-                    //         let dateA = new Date(a.scheduled_date), dateB = new Date(b.scheduled_date);
-                    //         return dateA - dateB; // Ascending order for 'Scheduled'
-                    //     } else { // For 'Finished' and 'Canceled'
-                    //         let dateA = new Date(a.finished_date), dateB = new Date(b.finished_date);
-                    //         return dateB - dateA; // Descending order for 'Finished' and 'Canceled'
-                    //     }
-                    // });
+
                     setDisplayedReviewItems(result);
                 } else {
                     const error = await response.text();
@@ -85,6 +76,14 @@ function Review() {
                 }
             } catch (err) {
                 console.error(err.message);
+            } finally {
+                setLoadingState(false);
+            }
+
+            if (loadingState) {
+                return <Typography variant="h6" component="div" gutterBottom align="center">
+                Loading...
+            </Typography>
             }
         };
 
@@ -93,9 +92,9 @@ function Review() {
 
 
 
-    //create a study item
+    //create a review item and relevant sessions
     const onSubmit = async data => {
-        console.log(data);
+
         try {
             const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/review`, {
                 method: 'POST',
@@ -109,6 +108,7 @@ function Review() {
             if (response.ok) {
                 const result = await response.json();
                 console.log(result);
+                console.log(displayedReviewItems);
                 if (statusFilter === 'Scheduled') {
                     setDisplayedReviewItems(prevDisplayedReviewItems => [...prevDisplayedReviewItems, result]);
                 }

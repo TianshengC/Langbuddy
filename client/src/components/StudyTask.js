@@ -232,7 +232,6 @@ function StudyTask({
             </Dialog>
 
  {/* dialog for status change */}
-
             <Dialog open={confirmStatusChangeOpen} onClose={() => setConfirmStatusChangeOpen(false)}>
                 <DialogTitle>Confirm Status Change</DialogTitle>
                 <DialogContent>
