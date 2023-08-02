@@ -12,7 +12,7 @@ const formatDate = (dateString) => {
         day = '0' + day;
     }
 
-    return [year, month, day].join('-');
+    return [day, month, year].join('/');
 };
 
 export default formatDate;

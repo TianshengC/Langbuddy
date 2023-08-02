@@ -41,11 +41,15 @@ function StudyTask({
         setDialogOpen(true);
     };
 
+      //formatted date for edit default date
+      const scheduledDate = new Date(scheduled_date);
+      const defaultScheduledDate = `${scheduledDate.getFullYear()}-${('0' + (scheduledDate.getMonth() + 1)).slice(-2)}-${('0' + scheduledDate.getDate()).slice(-2)}`;
+
     const handleEditDialogOpen = () => {
         setValue('title', studyItem.title);
         setValue('category', studyItem.category);
         setValue('content', studyItem.content);
-        setValue('scheduled_date', formatDate(studyItem.scheduled_date));
+        setValue('scheduled_date', defaultScheduledDate);
         setEditDialogOpen(true);
     };
 
@@ -157,6 +161,9 @@ function StudyTask({
       const handleMouseLeave = () => {
         setElevation(3); 
       };
+
+
+
 
     return (
         <Grid item xs={12} sm={6} md={4}>

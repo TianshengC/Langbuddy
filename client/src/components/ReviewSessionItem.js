@@ -6,11 +6,11 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-
+import formateDate from '../utils/FormatDate';
 
 function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnackbarSeverity, setSnackbarOpen, displayedReviewItems, setDisplayedReviewItems }) {
 
-  const [sessionStatus, setSessionStatus] = useState(session.status); 
+  // const [sessionStatus, setSessionStatus] = useState(session.status);
   const [newStatus, setNewStatus] = useState(null);
   const [confirmStatusChangeOpen, setConfirmStatusChangeOpen] = useState(false);
 
@@ -23,35 +23,52 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
   //Session Status(canceled and finished) change confirmation submission
   const confirmStatusChange = async () => {
     try {
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/session/change-status/${session.id_session}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include', // Ensures the request includes the cookie
-            body: JSON.stringify({ status: newStatus })
-        });
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/session/change-status/${session.id_session}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Ensures the request includes the cookie
+        body: JSON.stringify({ status: newStatus })
+      });
 
-        if (response.ok) {
-            const updatedSessionItem = await response.json();
-            setSessionStatus(updatedSessionItem.status);
+      if (response.ok) {
+          const updatedSessionItem = await response.json();
+  
+          // find the reviewItem this session belongs to and update the session status
+          const updatedReviewItems = displayedReviewItems.map(reviewItem => {
+            if (reviewItem.id_review === updatedSessionItem.id_review) {
+              // find this session in reviewSessions and update it
+              reviewItem.reviewSessions = reviewItem.reviewSessions.map(sessionItem => {
+                if (sessionItem.id_session === updatedSessionItem.id_session) {
+                  sessionItem.status = updatedSessionItem.status;
+                  sessionItem.finished_date = updatedSessionItem.finished_date;
+                }
+                return sessionItem;
+              });
+            }
+            return reviewItem;
+          });
+          
+          setDisplayedReviewItems(updatedReviewItems);
 
-            setSnackbarMessage('Review session status updated successfully');
-            setSnackbarSeverity('success');
-        } else {
-            const error = await response.text();
-            throw new Error(error);
-        }
+        setSnackbarMessage('Review session status updated successfully');
+        setSnackbarSeverity('success');
+      } else {
+        const error = await response.text();
+        throw new Error(error);
+      }
     } catch (err) {
-        console.error(err.message);
-        setSnackbarMessage(err.message || 'Error updating study item');
-        setSnackbarSeverity('error');
+      console.error(err.message);
+      setSnackbarMessage(err.message || 'Error updating study item');
+      setSnackbarSeverity('error');
+    } finally {
+      setConfirmStatusChangeOpen(false);
+      setNewStatus(null);
+      setSnackbarOpen(true);
     }
 
-    setConfirmStatusChangeOpen(false);
-    setNewStatus(null);
-    setSnackbarOpen(true);
-};
+  };
 
   const cancelStatusChange = () => {
     setNewStatus(null);
@@ -65,22 +82,22 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
           {`Session ${sessionNumber}`}
         </Typography>
         {/* <Typography variant="body2" color="text.secondary">{`Created: ${formattedCreateDate}`}</Typography> */}
-        {sessionStatus === "Scheduled" &&
-          <Typography variant="body2" color="text.secondary">{`Scheduled: ${new Date(session.scheduled_date).toLocaleDateString()}`}</Typography>}
-        {sessionStatus !== "Scheduled" &&
-          <Typography variant="body2" color="text.secondary">{`${sessionStatus}: ${new Date(session.finished_date).toLocaleDateString()}`}</Typography>}
+        {session.status === "Scheduled" &&
+          <Typography variant="body2" color="text.secondary">{`Scheduled: ${formateDate(session.scheduled_date)}`}</Typography>}
+        {session.status !== "Scheduled" &&
+          <Typography variant="body2" color="text.secondary">{`${session.status}: ${formateDate(session.finished_date)}`}</Typography>}
       </Box>
       <Box display="flex" justifyContent="flex-end" alignItems="center">
-        {sessionStatus === "Scheduled" &&
+        {session.status === "Scheduled" &&
           <Box display="flex" justifyContent="flex-end" alignItems="center">
             <Button variant="outlined" color="success" size="small" onClick={() => handleStatusChange('Finished')}>Finish</Button>
             <Button variant="outlined" color="error" size="small" onClick={() => handleStatusChange('Canceled')}>Cancel</Button>
           </Box>}
-        {sessionStatus !== "Scheduled" &&
-          <Typography variant="body2" color="text.secondary">{sessionStatus}</Typography>}
+        {session.status !== "Scheduled" &&
+          <Typography variant="body2" color="text.secondary">{session.status}</Typography>}
       </Box>
 
-{/* dialog for session status change */}
+{/* dialog for confirming session status change */}
       <Dialog open={confirmStatusChangeOpen} onClose={() => setConfirmStatusChangeOpen(false)}>
         <DialogTitle>Confirm Status Change</DialogTitle>
         <DialogContent>
@@ -89,11 +106,10 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={cancelStatusChange}>Cancel</Button>
           <Button onClick={confirmStatusChange}>Confirm</Button>
+          <Button onClick={cancelStatusChange}>Cancel</Button>
         </DialogActions>
       </Dialog>
-
     </Box>
 
 

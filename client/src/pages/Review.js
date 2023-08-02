@@ -32,7 +32,6 @@ import ReviewTask from "../components/ReviewTask";
 
 function Review() {
 
-
     const [modalOpen, setModalOpen] = useState(false);
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -70,6 +69,9 @@ function Review() {
                     const result = await response.json();
 
                     setDisplayedReviewItems(result);
+                    console.log(statusFilter);
+                    console.log(result);
+                    console.log(displayedReviewItems);
                 } else {
                     const error = await response.text();
                     throw new Error(error);
@@ -88,6 +90,8 @@ function Review() {
         };
 
         getDisplayedReviewItems();
+
+
     }, [statusFilter]);
 
 
@@ -107,8 +111,6 @@ function Review() {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log(result);
-                console.log(displayedReviewItems);
                 if (statusFilter === 'Scheduled') {
                     setDisplayedReviewItems(prevDisplayedReviewItems => [...prevDisplayedReviewItems, result]);
                 }

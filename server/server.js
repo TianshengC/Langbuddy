@@ -338,7 +338,7 @@ app.get('/review/status/:status', async (req, res) => {
         // Get sessions for each review item
         for (let item of reviewItems.rows) {
             const sessions = await pool.query(
-                "SELECT * FROM Review_Sessions WHERE id_review = $1",
+                "SELECT id_session, id_review, scheduled_date, finished_date, status FROM Review_Sessions WHERE id_review = $1",
                 [item.id_review]
             );
             item.reviewSessions = sessions.rows;
@@ -432,11 +432,6 @@ app.post('/review', async (req, res) => {
     }
 });
 
-//update the status of a single review session
-
-
-
-
 
 //update a review item and relevant review sessions
 app.patch('/review/edit/:id_review', async (req, res) => {
@@ -454,7 +449,10 @@ app.patch('/review/edit/:id_review', async (req, res) => {
 
         // Destructure the values from req.body
         const { category, title, content, reviewSessions } = req.body;
-
+        
+        console.log("userId: " + userId)
+        console.log("id_review: " + id_review)
+        console.log(req.body)
 
         // Start a transaction
         await pool.query('BEGIN');
@@ -477,20 +475,20 @@ app.patch('/review/edit/:id_review', async (req, res) => {
 
 
         // Update the corresponding review sessions
-        await Promise.all(reviewSessions.map(session => {
-            return pool.query(
-                "UPDATE review_sessions SET scheduled_date = $1 WHERE id_session = $2 AND id_review = $3",
+        for (let session of reviewSessions) {
+            const updatedSession = await pool.query(
+                "UPDATE review_sessions SET scheduled_date = $1 WHERE id_session = $2 AND id_review = $3 RETURNING *",
                 [session.scheduled_date, session.id_session, id_review]
             );
-        }));
+        }
+        
 
 
         // Insert the corresponding review sessions to the updated review item
         const updatedReviewSessions = await pool.query(
-            "SELECT * FROM review_sessions WHERE id_review = $1",
+            "SELECT id_session, scheduled_date, finished_date, status FROM review_sessions WHERE id_review = $1 ",
             [id_review]
         );
-
 
         updateReviewItem.rows[0].reviewSessions = updatedReviewSessions.rows;
 
@@ -499,6 +497,8 @@ app.patch('/review/edit/:id_review', async (req, res) => {
 
         //TODO: return the message to the frontend
         res.json(updateReviewItem.rows[0]);
+        console.log("Final updateReviewItem: ")
+        console.log(updateReviewItem.rows[0])
 
     } catch (err) {
         console.error(err.message);
@@ -508,7 +508,7 @@ app.patch('/review/edit/:id_review', async (req, res) => {
     }
 });
 
-// update a review session item status
+// update a single review session item status
 app.patch('/session/change-status/:id_session', async (req, res) => {
     try {
         const token = req.cookies.token;
@@ -529,6 +529,7 @@ app.patch('/session/change-status/:id_session', async (req, res) => {
             [id_session]
         );
 
+        console.log(sessionItem)
         if (sessionItem.rows.length === 0) {
             return res.status(404).json("No session item found.");
         }
@@ -541,10 +542,12 @@ app.patch('/session/change-status/:id_session', async (req, res) => {
 
         if (status === "Finished" || status === "Canceled") {
             updatedSessionItem = await pool.query(
-                "UPDATE review_sessions SET status = $1, finished_date = NOW() WHERE id_session = $2 RETURNING *",
+                "UPDATE review_sessions SET status = $1, finished_date = NOW() WHERE id_session = $2 RETURNING id_session, id_review, scheduled_date, finished_date, status",
                 [status, id_session]
             );
             res.json(updatedSessionItem.rows[0]);
+            console.log("updatedSessionItem: ")
+            console.log(updatedSessionItem.rows[0])
         } else {
             res.status(400).json("Invalid status.");
         }
@@ -553,6 +556,51 @@ app.patch('/session/change-status/:id_session', async (req, res) => {
         res.status(500).json("Server error");
     }
 });
+
+// add a new review session to a review item
+app.post('/review/add-session/:id_review', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+        const { id_review } = req.params;
+
+        if (!token) {
+            return res.status(401).json("No token provided");
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        const userId = decoded.user_id;
+
+        const { scheduled_date } = req.body;
+
+        // Fetch review item first to validate user
+        const reviewItem = await pool.query(
+            "SELECT * FROM review_items WHERE id_review = $1",
+            [id_review]
+        );
+
+        if (reviewItem.rows.length === 0) {
+            return res.status(404).json("No review item found.");
+        }
+
+        if (reviewItem.rows[0].id_user !== userId) {
+            return res.status(403).json("You are not authorized to modify this review item.");
+        }
+
+        // Insert the new review session
+        const newReviewSession = await pool.query(
+            "INSERT INTO review_sessions (id_review, scheduled_date, status, created_date) VALUES ($1, $2, 'Scheduled', NOW()) RETURNING id_session, id_review, scheduled_date, finished_date, status",
+            [id_review, scheduled_date]
+        );
+
+        res.json(newReviewSession.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
+
+
+
 
 
 
