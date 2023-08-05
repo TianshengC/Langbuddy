@@ -24,9 +24,11 @@ function Copyright() {
             sx={{
               pt: 0.5,
               px: 0,
-              mt: 'auto',
               backgroundColor: grey[200],
-              position:'relative', 
+              position:'fixed', 
+              height: '20px',
+              width: '100%',
+              bottom: '0px',
             }}
           >
             <Container maxWidth="sm">

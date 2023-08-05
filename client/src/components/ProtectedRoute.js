@@ -36,7 +36,7 @@ function ProtectedRoute() {
     return (
       <Grid container spacing={2}>
         <Grid item xs={1}>
-          <Box sx={{ mt: 2, ml: 2 }}>  {/* Adjust as needed */}
+          <Box sx={{ mt: 2, ml: 2 }}>
             <SpeedDial
               ariaLabel="Dashboard"
               icon={<SpeedDialIcon icon={<FormatListBulletedIcon />} openIcon={<PlaylistPlayIcon />} />}

@@ -142,8 +142,9 @@ function Study() {
 
     return (
         <Container>
+        <Box p={2}>
             <Paper elevation={3} style={{ minHeight: '100vh', marginTop: '0px', marginBottom: '0px' }} >
-                <Box display="flex" flexDirection="column" alignItems="center">
+                <Box display="flex" flexDirection="column" alignItems="center" p={2}>
                     <Typography variant="h4" component="div" gutterBottom align="center">
                         Study Overview
                     </Typography>
@@ -193,6 +194,7 @@ function Study() {
                     </Tooltip>
                 </Box>
             </Paper>
+            </Box>
 
             {/* // Add a study item Dialog */}
             <Dialog open={modalOpen} onClose={handleModalClose}>

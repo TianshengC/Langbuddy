@@ -5,7 +5,33 @@
     font-family: "Roboto";
   }
 
+  body {
+    height: 100%;
+  }
+
 .link {
     text-decoration: none;
     color: inherit;
 }
+
+/* Width of the scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track of the scrollbar */
+::-webkit-scrollbar-track {
+  background: #f1f1f1; 
+}
+ 
+/* Actual handle of the scrollbar */
+::-webkit-scrollbar-thumb {
+  background: #888; 
+  border-radius: 10px;
+}
+
+/* Scrollbar on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555; 
+}
+
