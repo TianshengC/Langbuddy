@@ -6,7 +6,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import formateDate from '../utils/FormatDate';
+import formatDate from '../utils/FormatDate';
 
 function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnackbarSeverity, setSnackbarOpen, displayedReviewItems, setDisplayedReviewItems }) {
 
@@ -83,9 +83,9 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
         </Typography>
         {/* <Typography variant="body2" color="text.secondary">{`Created: ${formattedCreateDate}`}</Typography> */}
         {session.status === "Scheduled" &&
-          <Typography variant="body2" color="text.secondary">{`Scheduled: ${formateDate(session.scheduled_date)}`}</Typography>}
+          <Typography variant="body2" color="text.secondary">{`Scheduled: ${formatDate(session.scheduled_date)}`}</Typography>}
         {session.status !== "Scheduled" &&
-          <Typography variant="body2" color="text.secondary">{`${session.status}: ${formateDate(session.finished_date)}`}</Typography>}
+          <Typography variant="body2" color="text.secondary">{`${session.status}: ${formatDate(session.finished_date)}`}</Typography>}
       </Box>
       <Box display="flex" justifyContent="flex-end" alignItems="center">
         {session.status === "Scheduled" &&

@@ -165,6 +165,7 @@ function Review() {
 
                     <Grid container spacing={3}>
                         {displayedReviewItems.map((reviewItem, index) => (
+                            <Grid item xs={12} sm={6} md={4}>
                             <ReviewTask
                                 key={index}
                                 reviewItem={reviewItem}
@@ -177,6 +178,7 @@ function Review() {
                                 snackbarSeverity={snackbarSeverity}
                                 setSnackbarSeverity={setSnackbarSeverity}
                             />
+                            </Grid >
                         ))}
                     </Grid>
                     <Tooltip title="Add Study Item" placement="top" arrow>

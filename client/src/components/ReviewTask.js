@@ -171,7 +171,7 @@ function ReviewTask({
     };
 
     return (
-        <Grid item xs={12} sm={6} md={4}>
+        <Box>
             <Card elevation={elevation} style={{ border: '1px solid #ddd' }} sx={{ mt: 2 }} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
                 <CardContent style={{ paddingBottom: 8 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={1}>
@@ -393,7 +393,7 @@ function ReviewTask({
             </Dialog>
 
 
-        </Grid >
+            </Box>
     );
 }
 

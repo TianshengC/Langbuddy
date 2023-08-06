@@ -603,10 +603,6 @@ app.post('/review/add-session/:id_review', async (req, res) => {
 
 
 
-
-
-
-
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`)
 })

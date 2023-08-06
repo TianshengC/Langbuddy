@@ -172,20 +172,21 @@ function Study() {
                         </Button>
                     </ButtonGroup>
                     <Grid container spacing={3}>
+
                         {displayedStudyItems.map((studyItem, index) => (
+                            <Grid item xs={12} sm={6} md={4}>
                             <StudyTask
                                 key={index}
                                 studyItem={studyItem}
                                 studyItems={displayedStudyItems}
                                 setStudyItems={setDisplayedStudyItems}
-                                snackbarOpen={snackbarOpen}
                                 setSnackbarOpen={setSnackbarOpen}
-                                snackbarMessage={snackbarMessage}
                                 setSnackbarMessage={setSnackbarMessage}
-                                snackbarSeverity={snackbarSeverity}
                                 setSnackbarSeverity={setSnackbarSeverity}
                             />
+                            </Grid>
                         ))}
+
                     </Grid>
                     <Tooltip title="Add Study Item" placement="top" arrow>
                         <Fab color="primary" aria-label="add" style={{ position: "fixed", bottom: "40px", right: "30px" }} onClick={handleModalOpen}>

@@ -14,22 +14,20 @@ import MenuItem from '@mui/material/MenuItem';
 import categories from '../utils/categories';
 
 
+
 function StudyTask({
     studyItem,
     studyItems,
     setStudyItems,
-    snackbarOpen,
     setSnackbarOpen,
-    snackbarMessage,
     setSnackbarMessage,
-    snackbarSeverity,
-    setSnackbarSeverity, s
+    setSnackbarSeverity, 
 }) {
     const { category, title, content, created_date, scheduled_date, finished_date, status } = studyItem;
 
-    const formattedCreateDate = new Date(created_date).toLocaleDateString();
-    const formattedScheduledDate = new Date(scheduled_date).toLocaleDateString();
-    const formattedFinishedDate = finished_date ? new Date(finished_date).toLocaleDateString() : null;
+    const formattedCreateDate = formatDate(created_date);
+    const formattedScheduledDate = formatDate(scheduled_date);
+    const formattedFinishedDate = finished_date ? formatDate(finished_date) : null;
     const [dialogOpen, setDialogOpen] = useState(false);
     const [confirmStatusChangeOpen, setConfirmStatusChangeOpen] = useState(false);
     const [newStatus, setNewStatus] = useState(null);
@@ -166,7 +164,8 @@ function StudyTask({
 
 
     return (
-        <Grid item xs={12} sm={6} md={4}>
+        // <Grid item xs={12} sm={6} md={4}>
+        <Box>
             <Card elevation={elevation} style={{ border: '1px solid #ddd' }} sx={{ mt: 2 }} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
                 <CardContent style={{ paddingBottom: 8 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={1}>
@@ -325,7 +324,8 @@ function StudyTask({
                     </DialogActions>
                 </form>
             </Dialog>
-        </Grid>
+        </Box>
+        // </Grid>
     );
 }
 
