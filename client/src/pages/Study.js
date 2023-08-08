@@ -88,11 +88,7 @@ function Study() {
                 setLoadingState(false);
             }
         
-            if(loadingState === true) {
-                return <Typography variant="h6" component="div" gutterBottom align="center">
-                Loading...
-            </Typography>
-            }
+
             
         
         };
@@ -139,6 +135,11 @@ function Study() {
         reset();
         handleModalClose();
     };
+
+
+    if(loadingState) {
+        return null;
+    }
 
     return (
         <Container>

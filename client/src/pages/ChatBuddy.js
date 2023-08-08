@@ -6,36 +6,119 @@ import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import Chatbox from '../components/Chatbox';
 import testMessages from '../utils/testChatMessages';
-import studyItems from '../utils/studyItems';
 import StudyTask from '../components/StudyTask';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import Grid from '@mui/material/Grid';
 import LocalLibraryIcon from '@mui/icons-material/LocalLibrary';
+import ReviewTask from '../components/ReviewTask';
 
 function ChatBuddy() {
 
-    const [messages, setMessages] = useState(testMessages);
-    const [newMessage, setNewMessage] = useState(null);
-    const [todayStudyItems, setTodayStudyItems] = useState(studyItems);
+    const [messages, setMessages] = useState([{"role":"chatbot","content":"Hello, how can I help you today?"}]);
+    const [newContent, setNewContent] = useState("");
+    const [todayStudyItems, setTodayStudyItems] = useState([]);
+    const [todayReviewItems, setTodayReviewItems] = useState([]);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+    const [loadingStudyItems, setLoadingStudyItems] = useState(true);
+    const [loadingReviewItems, setLoadingReviewItems] = useState(true);
 
-    const handleMessageChange = (event) => {
-        setNewMessage(event.target.value);
-    };
 
-    const handleSendMessage = () => {
-        //  replace this with the actual API call
-        setMessages([...messages, { user: 'You', text: newMessage }]);
-        setNewMessage("");
-    };
 
-    useEffect(() => {
-        //  replace this with the actual API call
-        setTodayStudyItems(studyItems);
+    useEffect( () => {
+        const getTodayStudyItems = async () => {
+            try {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/study/today`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    setTodayStudyItems(data);
+                }else{
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+            } catch (error) {
+                console.log(error);
+                setSnackbarOpen(true);
+                setSnackbarMessage(error.message);
+                setSnackbarSeverity('error');
+            }finally{
+                setLoadingStudyItems(false);
+            }
+    }
+
+        const getTodayReviewItems = async () => {
+            try {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/review/today`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setTodayReviewItems(data);
+                }else{
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+            } catch (error) {
+                console.log(error);
+                setSnackbarOpen(true);
+                setSnackbarMessage(error.message);
+                setSnackbarSeverity('error');
+            }finally{
+                setLoadingReviewItems(false);
+            }
+        }
+        
+        getTodayStudyItems();
+        getTodayReviewItems();
     }, []);
+
+    const handleSendMessage = async () => {
+        try {
+            if (!newContent) {
+                throw new Error('Please enter a message.');
+            }
+
+            const tempUserMessage = {"role":"user","content":newContent};
+            setMessages(prevMessages => [...prevMessages, tempUserMessage]);
+            setNewContent("");
+            const response= await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ content: newContent })
+            });
+
+            if (response.ok) {
+                const aiMessage = await response.json();
+                setMessages(prevMessages => [...prevMessages, aiMessage]);
+                
+            }else{
+                const error = await response.text();
+                console.log(error);
+                throw new Error(error);
+            }
+
+        } catch (error) {
+            console.log(error);
+            setSnackbarOpen(true);
+            setSnackbarMessage(error.message);
+            setSnackbarSeverity('error');
+        }
+    };
+
+    if(loadingStudyItems || loadingReviewItems){
+        return null;
+    }
 
     return (
         <Box display="flex" justifyContent="center" alignItems="start">
@@ -47,20 +130,22 @@ function ChatBuddy() {
     
                             <TextField
                                 variant="outlined"
-                                value={newMessage}
-                                onChange={handleMessageChange}
+                                value={newContent}
+                                onChange={(event) => setNewContent(event.target.value)}
                                 multiline
                                 fullWidth
                                 maxRows={4}
+                                placeholder='Type your message...'
                                 style={{ flexGrow: 1, maxHeight: '150px', overflow: 'auto' }}
                             />
     
                             <Box display="flex" justifyContent="flex-end" alignItems="center" ml={2}>
-                                <Button variant="contained" color="primary" onClick={handleSendMessage}>
-                                    Send
-                                </Button>
-                                <Button variant="contained" color="secondary" style={{ marginLeft: '10px' }}>
+
+                                <Button variant="contained" color="primary" >
                                     Record
+                                </Button>
+                                <Button variant="contained" color="primary" onClick={handleSendMessage} style={{ marginLeft: '10px' }}>
+                                    Send
                                 </Button>
                             </Box>
                         </Box>
@@ -68,7 +153,14 @@ function ChatBuddy() {
                     </Box>
                     <Box  display="flex" flexDirection="column" justifyContent="flex-start" alignItems="center" style={{ maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
                         {messages.map((message, index) => (
-                           <Chatbox key={index} message={message} />
+                           <Chatbox 
+                            key={index} 
+                            message={message} 
+                            setSnackbarMessage={setSnackbarMessage}
+                            setSnackbarOpen={setSnackbarOpen}
+                            setSnackbarSeverity={setSnackbarSeverity}
+                            setTodayReviewItems={setTodayReviewItems}
+                            />
                         ))}
                     </Box>
                 </Paper>
@@ -84,12 +176,25 @@ function ChatBuddy() {
                 <Grid container spacing={0}>
                 <Divider />
                         {todayStudyItems.map((studyItem, index) => (
-                            <Grid item xs={12} sm={12} md={12}>
+                            <Grid item xs={12} key={index}>
                             <StudyTask
                                 key={index}
                                 studyItem={studyItem}
                                 studyItems={todayStudyItems}
                                 setStudyItems={setTodayStudyItems}
+                                setSnackbarOpen={setSnackbarOpen}
+                                setSnackbarMessage={setSnackbarMessage}
+                                setSnackbarSeverity={setSnackbarSeverity}
+                            />
+                            </Grid>
+                        ))}
+                        {todayReviewItems.map((reviewItem, index) => (
+                            <Grid item xs={12} key={index}>
+                            <ReviewTask
+                                key={index}
+                                reviewItem={reviewItem}
+                                displayedReviewItems={todayReviewItems}
+                                setDisplayedReviewItems={setTodayReviewItems}
                                 setSnackbarOpen={setSnackbarOpen}
                                 setSnackbarMessage={setSnackbarMessage}
                                 setSnackbarSeverity={setSnackbarSeverity}

@@ -44,3 +44,16 @@ CREATE TABLE Review_Sessions (
     status VARCHAR(20) NOT NULL CHECK (status IN ('Scheduled', 'Finished', 'Canceled'))
 );
 
+CREATE TABLE ChatMessages (
+    id_message SERIAL PRIMARY KEY,  
+    id_user UUID NOT NULL REFERENCES Users(id_user) ON DELETE CASCADE, 
+    created_date TIMESTAMP NOT NULL,
+    chatbot_name VARCHAR(100) NOT NULL,  
+    role VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL
+    prompt_tokens INT,
+    completion_tokens INT,
+);
+
+
+

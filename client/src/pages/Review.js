@@ -23,7 +23,6 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import categories from '../utils/categories';
 import FormHelperText from '@mui/material/FormHelperText';
-import reviewItems from "../utils/reviewItems";
 import ReviewTask from "../components/ReviewTask";
 
 
@@ -69,9 +68,7 @@ function Review() {
                     const result = await response.json();
 
                     setDisplayedReviewItems(result);
-                    console.log(statusFilter);
-                    console.log(result);
-                    console.log(displayedReviewItems);
+
                 } else {
                     const error = await response.text();
                     throw new Error(error);
@@ -82,11 +79,6 @@ function Review() {
                 setLoadingState(false);
             }
 
-            if (loadingState) {
-                return <Typography variant="h6" component="div" gutterBottom align="center">
-                Loading...
-            </Typography>
-            }
         };
 
         getDisplayedReviewItems();
@@ -130,6 +122,10 @@ function Review() {
         reset();
         handleModalClose();
     };
+
+    if (loadingState) {
+        return null;
+    }
 
     return (
         <Container >

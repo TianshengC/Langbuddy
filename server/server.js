@@ -10,8 +10,14 @@ const { check, validationResult } = require('express-validator');
 const cookie = require('cookie');
 const cookieParser = require('cookie-parser');
 const util = require('util');
-
 const jwtVerify = util.promisify(jwt.verify);
+const axios = require('axios').default;
+
+const { Configuration, OpenAIApi } = require("openai");
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 app.use(express.json())
 
@@ -136,11 +142,13 @@ app.get('/me', async (req, res) => {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
-        // If the token is valid, get the decoded data
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
 
         res.json({ 'id_user': decoded.user_id, 'username': decoded.username });
     } catch (err) {
@@ -169,10 +177,13 @@ app.get('/study/status/:status', async (req, res) => {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
         const status = req.params.status;
 
@@ -188,6 +199,33 @@ app.get('/study/status/:status', async (req, res) => {
     }
 });
 
+//get today's study items
+app.get('/study/today', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const userId = decoded.user_id;
+
+        const todayStudyItems = await pool.query(
+            "SELECT * FROM study_items WHERE id_user = $1 AND scheduled_date <= CURRENT_DATE AND status = 'Scheduled'",
+            [userId]
+        );
+
+        res.json(todayStudyItems.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
+
 
 // create a study item
 app.post('/study', async (req, res) => {
@@ -195,10 +233,13 @@ app.post('/study', async (req, res) => {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
 
 
@@ -222,10 +263,13 @@ app.patch('/study/change-status/:id_study', async (req, res) => {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
 
         const { id_study } = req.params;
@@ -260,10 +304,13 @@ app.patch('/study/edit/:id_study', async (req, res) => {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
 
         const { id_study } = req.params;
@@ -286,6 +333,8 @@ app.patch('/study/edit/:id_study', async (req, res) => {
 });
 
 
+
+
 // Review Items and Review Sessions CRUD
 
 //get all review items and sessions by status
@@ -294,10 +343,13 @@ app.get('/review/status/:status', async (req, res) => {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
         const status = req.params.status;
 
@@ -353,16 +405,62 @@ app.get('/review/status/:status', async (req, res) => {
 });
 
 
+//get today's review items
+app.get('/review/today', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const userId = decoded.user_id;
+
+
+        const query = `
+        SELECT i.* FROM Review_Items i 
+        JOIN Review_Sessions s ON i.id_review = s.id_review 
+        WHERE i.id_user = $1 AND s.status = 'Scheduled' AND s.scheduled_date <= CURRENT_DATE
+        GROUP BY i.id_review
+      `;
+
+        const todayReviewItems = await pool.query(query, [userId]);
+
+        // Get sessions for each review item
+        for (let item of todayReviewItems.rows) {
+            const sessions = await pool.query(
+                "SELECT id_session, id_review, scheduled_date, finished_date, status FROM Review_Sessions WHERE id_review = $1 ORDER BY (CASE WHEN status = 'Scheduled' THEN scheduled_date ELSE finished_date END)",
+                [item.id_review]
+            );
+            item.reviewSessions = sessions.rows;
+        }
+
+        res.json(todayReviewItems.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
+
+
+
 //create a review item and related review sessions
 app.post('/review', async (req, res) => {
     try {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
 
 
@@ -440,16 +538,19 @@ app.patch('/review/edit/:id_review', async (req, res) => {
         const { id_review } = req.params;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
 
 
         // Destructure the values from req.body
         const { category, title, content, reviewSessions } = req.body;
-        
+
         console.log("userId: " + userId)
         console.log("id_review: " + id_review)
         console.log(req.body)
@@ -481,7 +582,7 @@ app.patch('/review/edit/:id_review', async (req, res) => {
                 [session.scheduled_date, session.id_session, id_review]
             );
         }
-        
+
 
 
         // Insert the corresponding review sessions to the updated review item
@@ -514,10 +615,13 @@ app.patch('/session/change-status/:id_session', async (req, res) => {
         const token = req.cookies.token;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
 
         const { id_session } = req.params;
@@ -564,10 +668,13 @@ app.post('/review/add-session/:id_review', async (req, res) => {
         const { id_review } = req.params;
 
         if (!token) {
-            return res.status(401).json("No token provided");
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         const userId = decoded.user_id;
 
         const { scheduled_date } = req.body;
@@ -599,7 +706,130 @@ app.post('/review/add-session/:id_review', async (req, res) => {
     }
 });
 
+//Chatbot output
+app.post('/chatbot', async (req, res) => {
+    const client = await pool.connect();
+    try {
 
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const userId = decoded.user_id;
+        const { content } = req.body;
+
+        console.log(content);
+        const chatbotName = "Ada";
+
+        //Begin transaction
+        await client.query('BEGIN');
+
+        //insert user message into database
+        const insertText = 'INSERT INTO ChatMessages(id_user, created_date, chatbot_name, role, content) VALUES($1, NOW(), $2, $3, $4)';
+        const insertValues = [userId, chatbotName, 'user', content];
+        await client.query(insertText, insertValues);
+
+        // Fetch the last 20 messages from the database
+        const fetchText = 'SELECT role, content FROM ChatMessages WHERE id_user = $1 ORDER BY created_date DESC LIMIT 20';
+        const fetchValues = [userId];
+        const fetchResult = await client.query(fetchText, fetchValues);
+
+
+        //decide the function and personality of the chatbot
+
+        let formatedMessages = fetchResult.rows.reverse().map(row => ({ role: row.role, content: row.content }));
+        const systemMessage = { role: "system", content: "You are a helpful English teacher and you are talking to a student who is learning English. You can provide useful learning tips and correct the student's mistakes." };
+        formatedMessages.unshift(systemMessage);
+        console.log(formatedMessages);
+
+        const completion = await openai.createChatCompletion({
+            model: "gpt-3.5-turbo",
+            messages: formatedMessages, //[{role:"user", content: content}],
+            temperature: 0.3,
+            presence_penalty: 0.1,
+            frequency_penalty: 0.3
+        })
+        // console.log(completion);
+        const { prompt_tokens, completion_tokens } = completion.data.usage
+
+        //insert chatbot message into database
+        const chatbotMessage = completion.data.choices[0].message.content;
+        const insertBotText = 'INSERT INTO ChatMessages(id_user, created_date, chatbot_name, role, content, prompt_tokens, completion_tokens) VALUES($1, NOW(), $2, $3, $4, $5, $6)';
+        const insertBotValues = [userId, chatbotName, 'assistant', chatbotMessage, prompt_tokens, completion_tokens];
+        await client.query(insertBotText, insertBotValues);
+
+        console.log(completion.data.choices[0].message);
+        res.json(completion.data.choices[0].message);
+        await client.query('COMMIT');
+    } catch (err) {
+        if (err.response) {
+            console.log(err.response.status)
+            console.log(err.response.data)
+        } else {
+            console.log(err.message)
+        }
+        res.status(500).json("Server error");
+    } finally {
+        client.release();
+    }
+});
+
+//translation
+app.post('/translate', async (req, res) => {
+
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const userId = decoded.user_id;
+        const { content } = req.body;
+        console.log(content);
+
+        const response = await axios({
+            baseURL: 'https://api.cognitive.microsofttranslator.com',
+            url: '/translate',
+            method: 'post',
+            headers: {
+                'Ocp-Apim-Subscription-Key': process.env.TRANSLATOR_API_KEY,
+                'Content-type': 'application/json',
+                'Ocp-Apim-Subscription-Region': 'uksouth',
+            },
+            params: {
+                'api-version': '3.0',
+                'from': 'en',
+                'to': 'zh-Hans'
+            },
+            data: [{
+                'text': content
+            }],
+            responseType: 'json'
+        })
+
+        console.log(JSON.stringify(response.data, null, 4));
+        const translatedText = response.data[0].translations[0].text;
+        res.json({ translatedText: translatedText });
+
+    } catch (error) {
+        console.error(error);
+        if (error.response) {
+            console.log(error.response.data)
+        }
+        res.status(500).json("Server error");
+    }
+});
 
 
 

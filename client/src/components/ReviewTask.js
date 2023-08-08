@@ -22,18 +22,13 @@ function ReviewTask({
     reviewItem,
     displayedReviewItems,
     setDisplayedReviewItems,
-    snackbarOpen,
     setSnackbarOpen,
-    snackbarMessage,
     setSnackbarMessage,
-    snackbarSeverity,
     setSnackbarSeverity,
 }) {
     const { category, title, content, created_date, reviewSessions } = reviewItem;
 
     const reviewStatus = getReviewStatus(reviewSessions);
-
-    const formattedCreateDate = new Date(created_date).toLocaleDateString();
 
     const [dialogOpen, setDialogOpen] = useState(false);
 
