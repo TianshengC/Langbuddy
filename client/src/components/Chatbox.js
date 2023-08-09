@@ -4,7 +4,6 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import TranslateIcon from '@mui/icons-material/Translate';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
-import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import { cyan } from '@mui/material/colors';
 import RateReviewIcon from '@mui/icons-material/RateReview';
@@ -16,20 +15,26 @@ import TextField from '@mui/material/TextField';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import { useState } from 'react';
-import { set, useForm } from 'react-hook-form';
+import {  useForm } from 'react-hook-form';
 import { Divider, FormControl, FormHelperText, InputLabel, MenuItem, Select } from '@mui/material';
 import categories from '../utils/categories';
+import NewlineText from './NewLineText';
+import CircularProgress from '@mui/material/CircularProgress';
+
 
 
 function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeverity, setTodayReviewItems }) {
     const { role, content } = message;
-    const { register, handleSubmit, formState: { errors }, reset } = useForm();
+    const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm();
     const [selectedPattern, setSelectedPattern] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [translatedText, setTranslatedText] = useState('');
     const [showTranslatedText, setShowTranslatedText] = useState(false);
+    const [loadingTranslation, setLoadingTranslation] = useState(false);
+    const [loadingSpeech, setLoadingSpeech] = useState(false);
 
     const handleModalOpen = () => {
+        setValue('content', content);
         setModalOpen(true);
     };
 
@@ -38,6 +43,7 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
         reset();  // Reset form state upon modal close
     };
 
+//handle translation function
     const handleTranslate = async () => {
         
         if (showTranslatedText) {
@@ -46,6 +52,7 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
         }
 
         try {
+            setLoadingTranslation(true);
             const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/translate`, {
                 method: 'POST',
                 headers: {
@@ -57,26 +64,81 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
             
             const result = await response.json();
             if(response.ok){
-                console.log(result);
+
                 setTranslatedText(result.translatedText);
                 setShowTranslatedText(true);
-                console.log(translatedText);
 
+                setSnackbarOpen(true);
                 setSnackbarMessage('Tranlated successfully');
                 setSnackbarSeverity('success');
             } else {
                 throw new Error(result.message || "Translation failed");
-            }
+            }  
 
         } catch (err) {
             console.error(err.message);
+            setSnackbarOpen(true);
             setSnackbarMessage(err.message || 'Translation failed');
             setSnackbarSeverity('error');
+        }finally {
+            setLoadingTranslation(false);
         }
 
     };
 
-    //create a review item and relevant sessions
+// //handle speech synthesis by Web API
+//     const handleSpeak = async () => {
+//         if ('speechSynthesis' in window) {
+//             let utterance = new SpeechSynthesisUtterance(content);
+//             utterance.lang = 'en-US'; 
+//             speechSynthesis.speak(utterance);
+//         } else {
+//             console.error("Your browser doesn't support text-to-speech.");
+//             setSnackbarMessage('Your browser doesn\'t support text-to-speech.');
+//             setSnackbarSeverity('error');
+//         }
+//     }
+
+//handle speech synthesis Microsoft Azure API
+    const handleSpeak = async () => {
+        try {
+
+            setLoadingSpeech(true);
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/synthesis`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ text: content })
+            });
+    
+            if (response.ok) {
+                const audioBlob = await response.blob();
+                const audioUrl = window.URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+                audio.onended = () => {
+                    window.URL.revokeObjectURL(audioUrl); // Free up memory
+                };
+                setSnackbarOpen(true);
+                setSnackbarMessage('Speech synthesized successfully');
+                setSnackbarSeverity('success');
+            } else {
+                console.error("Failed to synthesize speech.");
+                setSnackbarOpen(true);
+                setSnackbarMessage('Failed to synthesize speech.');
+                setSnackbarSeverity('error');
+            }
+        } catch (error) {
+            console.error("There was an error with the text-to-speech request:", error);
+        } finally {
+            setLoadingSpeech(false);
+        }
+    };
+
+
+
+//create a review item and relevant sessions
     const onSubmit = async data => {
 
         try {
@@ -136,7 +198,7 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
         borderRadius: role === 'user' ? '20px 5px 20px 20px' : '5px 20px 20px 20px'
     };
 
-    const iconColor = role === 'user' ? 'white' : 'action';
+    const iconColor = role === 'user' ? 'white' : 'inherit';
 
     return (
         <section style={{ width: '100%', padding: '0px 10px' }}>
@@ -144,9 +206,10 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
                 <CardContent pt={0} pb={0} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '10px 10px 3px 10px' }}>
                     <Box mt={0} mb={0}>
                         <Typography variant="body1" >
-                            {content}
+                            <NewlineText text={content}/>
                         </Typography>
-                        {showTranslatedText && (
+                        {showTranslatedText && (<Divider />)}
+                            {showTranslatedText &&(
                             <Typography variant="body1" >
                                 {translatedText}
                             </Typography>)}
@@ -154,12 +217,13 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
                     <Box display="flex" mt={0} mb={0} justifyContent={role === 'user' ? 'flex-end' : 'flex-start'} alignItems='center' style={{ width: '100%' }}>
                         <Tooltip title="translation">
                             <IconButton aria-label="translate" onClick={handleTranslate}>
-                                <TranslateIcon style={{ fontSize: 17, color: iconColor }} />
+                                {loadingTranslation? <CircularProgress size={15} style={{color:iconColor }}/>:<TranslateIcon style={{ fontSize: 12, color: iconColor }} />}
+                                
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="audio">
-                            <IconButton aria-label="speak">
-                                <VolumeUpIcon style={{ fontSize: 17, color: iconColor }} />
+                            <IconButton aria-label="speak" onClick={handleSpeak}>
+                            {loadingSpeech? <CircularProgress size={15} style={{color:iconColor }}/>:<VolumeUpIcon style={{ fontSize: 17, color: iconColor }} />}
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="create review">

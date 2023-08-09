@@ -18,6 +18,7 @@ const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
+const findEarliestScheduledDate = require('./utils/findEarlistScheduledDate');
 
 app.use(express.json())
 
@@ -390,11 +391,15 @@ app.get('/review/status/:status', async (req, res) => {
         // Get sessions for each review item
         for (let item of reviewItems.rows) {
             const sessions = await pool.query(
-                "SELECT id_session, id_review, scheduled_date, finished_date, status FROM Review_Sessions WHERE id_review = $1",
+                "SELECT id_session, id_review, scheduled_date, finished_date, status FROM Review_Sessions WHERE id_review = $1 ORDER BY (CASE WHEN status = 'Scheduled' THEN scheduled_date ELSE finished_date END)",
                 [item.id_review]
             );
             item.reviewSessions = sessions.rows;
         }
+
+        reviewItems.rows.sort((a, b) => {
+            return new Date(findEarliestScheduledDate(a)) - new Date(findEarliestScheduledDate(b));
+        });
 
         res.json(reviewItems.rows);
 
@@ -706,7 +711,42 @@ app.post('/review/add-session/:id_review', async (req, res) => {
     }
 });
 
-//Chatbot output
+//Chatbot Routes
+
+//get history chatbot messages
+app.get('/chatbot', async (req, res) => {
+    try {
+
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const userId = decoded.user_id;
+
+        const chatbotMessages = await pool.query(
+            "SELECT created_date, role, content FROM ChatMessages WHERE id_user = $1 ORDER BY created_date DESC, id_message DESC LIMIT 20",
+            [userId]
+        );
+
+
+        res.json(chatbotMessages.rows.reverse());
+        
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
+
+
+
+//Send message to openAI and get Chatbot response
 app.post('/chatbot', async (req, res) => {
     const client = await pool.connect();
     try {
@@ -746,7 +786,6 @@ app.post('/chatbot', async (req, res) => {
         let formatedMessages = fetchResult.rows.reverse().map(row => ({ role: row.role, content: row.content }));
         const systemMessage = { role: "system", content: "You are a helpful English teacher and you are talking to a student who is learning English. You can provide useful learning tips and correct the student's mistakes." };
         formatedMessages.unshift(systemMessage);
-        console.log(formatedMessages);
 
         const completion = await openai.createChatCompletion({
             model: "gpt-3.5-turbo",
@@ -830,6 +869,43 @@ app.post('/translate', async (req, res) => {
         res.status(500).json("Server error");
     }
 });
+
+const fs = require('fs');
+
+//synthesis from azure API
+app.post('/synthesis', async (req, res) => {
+        try {
+            const { text } = req.body;
+            console.log(text);
+            const azureEndpoint = "https://uksouth.tts.speech.microsoft.com/cognitiveservices/v1";
+            const apiKey = "59078bd2f32b44e8aa6b249d0e3b1035";
+    
+            const response = await axios.post(azureEndpoint, `<speak version='1.0' xml:lang='en-US'><voice xml:lang='en-US' xml:gender='Female' name='en-US-JennyMultilingualNeural'>${text}</voice></speak>`, {
+                headers: {
+                    'Ocp-Apim-Subscription-Key': apiKey,
+                    'Content-Type': 'application/ssml+xml',
+                    'X-Microsoft-OutputFormat': 'riff-24khz-16bit-mono-pcm', //riff-8khz-16bit-mono-pcm OR riff-24khz-16bit-mono-pcm 
+                    'User-Agent': 'langbuddy'
+                },
+                responseType: 'arraybuffer'
+            });
+
+            console.log(response);
+    
+            res.set({
+                'Content-Type': 'audio/wav',
+                'Transfer-Encoding': 'chunked'
+            });
+            res.send(response.data);
+            console.log("synthesis success");
+            console.log(response.data)
+            fs.writeFileSync('output.wav', response.data);
+    
+        } catch (error) {
+            console.error("Error synthesizing speech:", error);
+            res.status(500).send("Error synthesizing speech");
+        }
+    });
 
 
 

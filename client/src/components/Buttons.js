@@ -1,6 +1,7 @@
 import Button from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
 
+
 export const ColorButton = styled(Button)(({ theme }) => ({
     color: theme.palette.primary.contrastText,
     textTransform: 'none',
@@ -26,6 +27,31 @@ export const TextButton = styled(Button)(({ theme }) => ({
         backgroundColor: theme.palette.primary.dark,
     },
 }));
+
+export const DisabledButton = styled(Button)(({ theme }) => ({
+    '&.Mui-disabled': {
+        backgroundColor: theme.palette.success.light,
+        "&:hover": {
+          backgroundColor: theme.palette.success.light,
+        },
+        animation: '$pulse 1.5s infinite',
+      },
+      '&.active': {
+        animation: '$pulse 1.5s infinite',
+        animationFillMode: 'forwards'
+      },
+      '@keyframes pulse': {
+        '0%': {
+          boxShadow: `0 0 0 0 rgba(92, 247, 190, 0.4)`, 
+        },
+        '70%': {
+          boxShadow: `0 0 0 10px rgba(92, 247, 190, 0)`, 
+        },
+        '100%': {
+          boxShadow: `0 0 0 0 rgba(92, 247, 190, 0)`, 
+        }
+      }
+    }));
 
 // const BootstrapButton = styled(Button)({
 //   boxShadow: 'none',

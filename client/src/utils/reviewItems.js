@@ -12,25 +12,20 @@ const reviewItems = [
                 "scheduled_date": "2023-05-02",
                 "finished_date": null,
                 "status": "Scheduled",
-                "session_number": 1
             },
             {
                 "id_session": 2,
                 "scheduled_date": "2023-05-03",
                 "finished_date": null,
                 "status": "Scheduled",
-                "session_number": 2
             },
             {
                 "id_session": 3,
                 "scheduled_date": "2023-05-03",
                 "finished_date": "2023-05-03",
                 "status": "Canceled",
-                "session_number": 3
             },
         ],
-        "totalSessions": 7,
-        "completedSessions": 0
     },
     
     
@@ -84,9 +79,8 @@ const reviewItems = [
                 "id_review": 3,
                 "created_date": "2023-07-01T00:00:00.000Z",
                 "scheduled_date": "2023-07-02",
-                "finished_date": null,
-                "status": "Scheduled",
-                "session_number": 1
+                "finished_date": "2023-07-03",
+                "status": "Canceled",
             },
             {
                 "id_session": 8,
@@ -95,7 +89,6 @@ const reviewItems = [
                 "scheduled_date": "2023-07-03",
                 "finished_date": "2023-07-03",
                 "status": "Finished",
-                "session_number": 2
             },
             {
                 "id_session": 9,
@@ -104,11 +97,8 @@ const reviewItems = [
                 "scheduled_date": "2023-07-04",
                 "finished_date": null,
                 "status": "Scheduled",
-                "session_number": 3
             }
         ],
-        "totalSessions": 3,
-        "completedSessions": 1
     }
 ]
 
