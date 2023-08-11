@@ -15,6 +15,13 @@ import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import MicRoundedIcon from '@mui/icons-material/MicRounded';
 import CircularProgress from '@mui/material/CircularProgress';
 import { DisabledButton } from '../components/Buttons';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+
 
 function ChatBuddy() {
 
@@ -30,8 +37,10 @@ function ChatBuddy() {
     const [loadingMessages, setLoadingMessages] = useState(true);
     const [loadingSendMessage, setLoadingSendMessage] = useState(false);
     const [loadingVoiceRecognition, setLoadingVoiceRecognition] = useState(false);
-
-
+    const [loadingNewTopic, setLoadingNewTopic] = useState(false);
+    const [openNewTopicDialog, setOpenNewTopicDialog] = useState(false);
+    const [newTopicInput, setNewTopicInput] = useState('');
+    const [inputError, setInputError] = useState(false);
 
     useEffect(() => {
         // get the study items for today
@@ -113,7 +122,6 @@ function ChatBuddy() {
                 setSnackbarSeverity('error');
             }
         }
-
 
         getMessages();
         getTodayStudyItems();
@@ -197,6 +205,56 @@ function ChatBuddy() {
         recognition.start();
     }
 
+    //manage topic input dialog open and close
+    const handleOpenDialog = () => {
+        setOpenNewTopicDialog(true);
+    }
+
+    const handleCloseDialog = () => {
+        setOpenNewTopicDialog(false);
+        setNewTopicInput('');
+    }
+
+
+    //create new topic
+    const sendNewTopic = async () => {
+        // Exit the function if the input is empty
+        if (newTopicInput.trim() === '') {
+            setInputError(true);
+            return; 
+        }
+
+        try {
+            setLoadingNewTopic(true);
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot/new-topic`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ content: newTopicInput })
+            });
+
+            if (response.ok) {
+                const newTopic = await response.json();
+                setMessages(prevMessages => [...prevMessages, newTopic]);
+            } else {
+                const error = await response.text();
+                console.log(error);
+                throw new Error(error);
+            }
+
+        } catch (error) {
+            console.log(error);
+            setSnackbarOpen(true);
+            setSnackbarMessage(error.message);
+            setSnackbarSeverity('error');
+        } finally {
+            setLoadingNewTopic(false);
+            setNewTopicInput('');
+            setOpenNewTopicDialog(false);
+        }
+    }
+
+
 
     if (loadingStudyItems || loadingReviewItems || loadingMessages) {
         return null;
@@ -220,7 +278,7 @@ function ChatBuddy() {
                                 placeholder={
                                     loadingVoiceRecognition ? 'Voice recognition started. Recording...' :
                                         loadingSendMessage ? 'Waiting for Chatbot reply...' :
-                                            'Type your message...'
+                                            setLoadingNewTopic ? 'Creating new topic' : 'Type your message...'
                                 }
                                 disabled={loadingVoiceRecognition || loadingSendMessage}
                                 style={{ flexGrow: 1, maxHeight: '150px', overflow: 'auto', backgroundColor: loadingVoiceRecognition || loadingSendMessage ? '#f5f5f5' : 'transparent' }}
@@ -228,11 +286,14 @@ function ChatBuddy() {
 
                             <Box display="flex" justifyContent="flex-end" alignItems="center" ml={2}>
 
-                                <DisabledButton  variant="contained" color="primary" onClick={startVoiceRecognition} disabled={loadingVoiceRecognition} >
+                                <DisabledButton variant="contained" color="primary" onClick={startVoiceRecognition} disabled={loadingVoiceRecognition} >
                                     {loadingVoiceRecognition ? <CircularProgress size={23} color="inherit" /> : <MicRoundedIcon />}
                                 </DisabledButton>
-                                <DisabledButton  variant="contained" color="primary" onClick={handleSendMessage} style={{ marginLeft: '10px' }} disabled={loadingSendMessage} >
+                                <DisabledButton variant="contained" color="primary" onClick={handleSendMessage} style={{ marginLeft: '10px' }} disabled={loadingSendMessage} >
                                     {loadingSendMessage ? <CircularProgress size={23} color="inherit" /> : <SendRoundedIcon />}
+                                </DisabledButton>
+                                <DisabledButton variant="contained" color="primary" onClick={handleOpenDialog} style={{ marginLeft: '10px' }} disabled={loadingNewTopic} >
+                                    {loadingNewTopic ? <CircularProgress size={23} color="inherit" /> : <AutoFixHighIcon />}
                                 </DisabledButton>
                             </Box>
                         </Box>
@@ -291,6 +352,39 @@ function ChatBuddy() {
                     </Grid>
                 </Paper>
             </Box>
+
+            {/* dialog for creating new topic */}
+            <Dialog open={openNewTopicDialog} onClose={handleCloseDialog} aria-labelledby="form-dialog-title">
+                <DialogTitle id="form-dialog-title">New Topic</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Please enter the new topic below:
+                    </DialogContentText>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        id="name"
+                        label="New Topic"
+                        type="text"
+                        fullWidth
+                        value={newTopicInput}
+                        onChange={e => {setNewTopicInput(e.target.value);
+                        setInputError(false)}}
+                        error={inputError}
+                        helperText={inputError ? "Topic cannot be empty" : ""}
+                    />
+                    
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={sendNewTopic} color="primary">
+                        Confirm
+                    </Button>
+                    <Button onClick={handleCloseDialog} color="primary">
+                        Cancel
+                    </Button>
+
+                </DialogActions>
+            </Dialog>
 
             {/* // Snackbar to provide hints */}
             <Snackbar

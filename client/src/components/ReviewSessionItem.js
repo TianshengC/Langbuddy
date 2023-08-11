@@ -7,6 +7,10 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import formatDate from '../utils/FormatDate';
+import isOverdue from '../utils/isOverdue';
+import NotificationImportantRoundedIcon from '@mui/icons-material/NotificationImportantRounded';
+import TimerIcon from '@mui/icons-material/Timer';
+
 
 function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnackbarSeverity, setSnackbarOpen, displayedReviewItems, setDisplayedReviewItems }) {
 
@@ -84,6 +88,8 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
         {/* <Typography variant="body2" color="text.secondary">{`Created: ${formattedCreateDate}`}</Typography> */}
         {session.status === "Scheduled" &&
           <Typography variant="body2" color="text.secondary">{`Scheduled: ${formatDate(session.scheduled_date)}`}</Typography>}
+          {session.status === "Scheduled" && isOverdue(new Date(session.scheduled_date)) && 
+          <Typography variant="body2" color="error">Overdue</Typography>}
         {session.status !== "Scheduled" &&
           <Typography variant="body2" color="text.secondary">{`${session.status}: ${formatDate(session.finished_date)}`}</Typography>}
       </Box>

@@ -55,5 +55,39 @@ CREATE TABLE ChatMessages (
     completion_tokens INT,
 );
 
+CREATE TABLE Courses (
+    id_course SERIAL PRIMARY KEY,
+    title VARCHAR(100) UNIQUE NOT NULL,
+    description VARCHAR(1000) NOT NULL,
+    created_date TIMESTAMP NOT NULL
+);
+
+CREATE TABLE Course_Default_Study_Items (
+    id_default_study SERIAL PRIMARY KEY,
+    id_course INTEGER NOT NULL REFERENCES Courses(id_course) ON DELETE CASCADE,
+    category VARCHAR(20) NOT NULL CHECK (category IN ('Vocabulary', 'Reading', 'Listening', 'Conversation', 'Writing', 'Culture', 'Other')),
+    title VARCHAR(50) NOT NULL,
+    content VARCHAR(2000) NOT NULL,
+    created_date TIMESTAMP NOT NULL,
+    scheduled_date_offset INTEGER NOT NULL  -- this can be an offset in days from the course registration date
+);
+
+
+
+CREATE TABLE User_Courses (
+    id_user_course SERIAL PRIMARY KEY,
+    id_user UUID NOT NULL REFERENCES Users(id_user) ON DELETE CASCADE,
+    id_course INTEGER NOT NULL REFERENCES Courses(id_course) ON DELETE CASCADE,
+    registration_date TIMESTAMP NOT NULL,
+    UNIQUE (id_user, id_course)  -- To ensure a user can't register for the same course more than once
+);
+
+
+
+
+
+
+
+
 
 

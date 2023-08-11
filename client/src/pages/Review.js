@@ -245,14 +245,14 @@ function Review() {
                         {selectedPattern === 'Custom' && (
                             <TextField
                                 margin="dense"
-                                label="First Review Date"
+                                label="First Review Session Date"
                                 type="date"
                                 fullWidth
                                 InputLabelProps={{
                                     shrink: true,
                                 }}
                                 {...register('firstReviewDate', {
-                                    required: "First Review Date is required",
+                                    required: "First Review Session Date is required",
                                     validate: {
                                         isFuture: value => {
                                             const inputDate = new Date(value);

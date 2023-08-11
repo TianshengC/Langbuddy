@@ -30,7 +30,7 @@ function ReviewTask({
 
     const reviewStatus = getReviewStatus(reviewSessions);
 
-    const [dialogOpen, setDialogOpen] = useState(false);
+    const [readMoreDialogOpen, setReadMoreDialogOpen] = useState(false);
 
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const { register, handleSubmit, formState: { errors }, setValue, control } = useForm();
@@ -44,7 +44,7 @@ function ReviewTask({
     }
 
     const handleDialogOpen = () => {
-        setDialogOpen(true);
+        setReadMoreDialogOpen(true);
     };
 
     const handleEditDialogOpen = () => {
@@ -216,7 +216,7 @@ function ReviewTask({
 
 
             {/* dialog for read more */}
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+            <Dialog open={readMoreDialogOpen} onClose={() => setReadMoreDialogOpen(false)}>
                 <DialogContent>
                     <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={1}>
                         <Typography variant={title.length > 25 ? "subtitle1" : "h6"} component="div" fontWeight="bold" style={{
@@ -235,7 +235,7 @@ function ReviewTask({
                     <Divider />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDialogOpen(false)}>Close</Button>
+                    <Button onClick={() => setReadMoreDialogOpen(false)}>Close</Button>
                 </DialogActions>
             </Dialog>
 

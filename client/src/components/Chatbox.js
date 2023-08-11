@@ -20,7 +20,7 @@ import { Divider, FormControl, FormHelperText, InputLabel, MenuItem, Select } fr
 import categories from '../utils/categories';
 import NewlineText from './NewLineText';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import Chip from '@mui/material/Chip';
 
 
 function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeverity, setTodayReviewItems }) {
@@ -86,7 +86,7 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
 
     };
 
-// //handle speech synthesis by Web API
+// //handle speech synthesis by Web API, future reference
 //     const handleSpeak = async () => {
 //         if ('speechSynthesis' in window) {
 //             let utterance = new SpeechSynthesisUtterance(content);
@@ -199,6 +199,16 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
     };
 
     const iconColor = role === 'user' ? 'white' : 'inherit';
+
+    if (role === 'topic') {
+        return (
+          <section style={{ width: '100%', padding: '5px 20px', marginBottom:"5px", marginTop:"20px" }}>
+            <Divider variant="middle" >
+            <Chip label={"Topic: " + content} />
+          </Divider>
+        </section>
+        )}
+    
 
     return (
         <section style={{ width: '100%', padding: '0px 10px' }}>
