@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
@@ -10,9 +10,15 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import UserContext from '../utils/UserContext';
 
 function Register() {
   const navigate = useNavigate();
+  const {currentUser} = useContext(UserContext);
+  if(currentUser) {
+    navigate('/dashboard');
+  }
+
   const [userData, setUserData] = useState({
     username: "",
     email: "",

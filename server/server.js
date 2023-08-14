@@ -19,6 +19,9 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 const findEarliestScheduledDate = require('./utils/findEarlistScheduledDate');
+const chatbotGreetingMessages = require('./utils/chatbotGreetingMessage');
+const getChatbotModel = require('./utils/chatbotModel');
+const { get } = require('http');
 
 app.use(express.json())
 
@@ -72,10 +75,18 @@ app.post('/signup',
             }
 
             const newUser = await pool.query(
-                "INSERT INTO users (username, user_email, password_hash, created_date, mother_language) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+                "INSERT INTO users (username, user_email, password_hash, created_date, mother_language) VALUES ($1, $2, $3, $4, $5) RETURNING username, id_user",
                 [username, user_email, hashedPassword, new Date(), mother_language]
             );
-            res.json(newUser.rows[0]);
+            
+            for (let msg of chatbotGreetingMessages) {
+                await pool.query(
+                    "INSERT INTO ChatMessages (id_user, created_date, chatbot_name, role, content) VALUES ($1, $2, $3, $4, $5)",
+                    [newUser.rows[0].id_user, new Date(), msg.chatbotName, 'assistant', msg.content]
+                );
+            }
+
+            res.json(newUser.rows[0].username);
             console.log("New user created: " + newUser.rows[0].username);
         } catch (err) {
             console.error(err.message);
@@ -707,7 +718,7 @@ app.post('/review/add-session/:id_review', async (req, res) => {
 //Chatbot Routes
 
 //get history chatbot messages
-app.get('/chatbot', async (req, res) => {
+app.get('/chatbot/:selectedChatbot', async (req, res) => {
     try {
 
         const token = req.cookies.token;
@@ -722,12 +733,12 @@ app.get('/chatbot', async (req, res) => {
             return res.status(401).json({ message: "Invalid token" });
         }
         const userId = decoded.user_id;
+        const { selectedChatbot } = req.params;
 
         const chatbotMessages = await pool.query(
-            "SELECT created_date, role, content FROM ChatMessages WHERE id_user = $1 ORDER BY created_date DESC, id_message DESC LIMIT 20",
-            [userId]
+            "SELECT created_date, role, content FROM ChatMessages WHERE id_user = $1 AND chatbot_name = $2 ORDER BY created_date DESC, id_message DESC LIMIT 20",
+            [userId, selectedChatbot]
         );
-
 
         res.json(chatbotMessages.rows.reverse());
 
@@ -740,7 +751,7 @@ app.get('/chatbot', async (req, res) => {
 
 
 //Send message to openAI and get Chatbot response
-app.post('/chatbot', async (req, res) => {
+app.post('/chatbot/:selectedChatbot', async (req, res) => {
     const client = await pool.connect();
     try {
 
@@ -756,56 +767,60 @@ app.post('/chatbot', async (req, res) => {
         }
         const userId = decoded.user_id;
         const { content } = req.body;
+        const { selectedChatbot } = req.params;
 
-        const chatbotName = "Ada";
+        const chatbotModel = getChatbotModel(selectedChatbot);
 
         //Begin transaction
         await client.query('BEGIN');
 
         //insert user message into database
         const insertText = 'INSERT INTO ChatMessages(id_user, created_date, chatbot_name, role, content) VALUES($1, NOW(), $2, $3, $4)';
-        const insertValues = [userId, chatbotName, 'user', content];
+        const insertValues = [userId, chatbotModel.name, 'user', content];
         await client.query(insertText, insertValues);
 
         // Fetch the last 20 messages from the database
-        // const fetchText = 'SELECT role, content FROM ChatMessages WHERE id_user = $1 AND role != $2 ORDER BY created_date DESC LIMIT 20';
         const fetchText = `
             SELECT role, content 
             FROM ChatMessages 
             WHERE id_user = $1 
+            AND chatbot_name = $3
             AND created_date > (
                 SELECT MAX(created_date) 
                 FROM ChatMessages 
                 WHERE id_user = $1 
-                AND role = $2
+                AND role = $2 And chatbot_name = $3
             )
             ORDER BY created_date DESC, id_message DESC
             LIMIT 20;
         `;
-        const fetchValues = [userId, 'topic'];
+        const fetchValues = [userId, 'topic', chatbotModel.name];
         const fetchResult = await client.query(fetchText, fetchValues);
                 
 
         //decide the function and personality of the chatbot
 
         let formatedMessages = fetchResult.rows.reverse().map(row => ({ role: row.role, content: row.content }));
-        const systemMessage = { role: "system", content: "You are a helpful English teacher and you are talking to a student who is learning English. You can provide useful learning tips and correct the student's mistakes." };
-        formatedMessages.unshift(systemMessage);
+        const systemMessage = chatbotModel.messages;
+        formatedMessages = [...systemMessage, ...formatedMessages];
+
+        console.log(formatedMessages);
 
         const completion = await openai.createChatCompletion({
-            model: "gpt-3.5-turbo",
+            model: chatbotModel.model,
             messages: formatedMessages, //[{role:"user", content: content}],
-            temperature: 0.3,
-            presence_penalty: 0.1,
-            frequency_penalty: 0.3
+            temperature: chatbotModel.temperature,
+            presence_penalty: chatbotModel.presence_penalty,
+            frequency_penalty: chatbotModel.frequency_penalty,
         })
+
         // console.log(completion);
         const { prompt_tokens, completion_tokens } = completion.data.usage
 
         //insert chatbot message into database
         const chatbotMessage = completion.data.choices[0].message.content;
         const insertBotText = 'INSERT INTO ChatMessages(id_user, created_date, chatbot_name, role, content, prompt_tokens, completion_tokens) VALUES($1, NOW(), $2, $3, $4, $5, $6)';
-        const insertBotValues = [userId, chatbotName, 'assistant', chatbotMessage, prompt_tokens, completion_tokens];
+        const insertBotValues = [userId, chatbotModel.name, 'assistant', chatbotMessage, prompt_tokens, completion_tokens];
         await client.query(insertBotText, insertBotValues);
 
         res.json(completion.data.choices[0].message);

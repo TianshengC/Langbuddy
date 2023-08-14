@@ -17,11 +17,16 @@ import { useContext } from 'react';
 
 function LogIn() {
 
+
+  const navigate = useNavigate();
+  const {currentUser, setCurrentUser} = useContext(UserContext);
+  if(currentUser) {
+    navigate('/dashboard');
+  }
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
-  const {setCurrentUser} = useContext(UserContext);
 
   const emailRegex = /^\S+@\S+\.\S+$/;
   const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;

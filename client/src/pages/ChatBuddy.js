@@ -21,6 +21,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+import { set } from 'react-hook-form';
 
 
 function ChatBuddy() {
@@ -41,6 +42,10 @@ function ChatBuddy() {
     const [openNewTopicDialog, setOpenNewTopicDialog] = useState(false);
     const [newTopicInput, setNewTopicInput] = useState('');
     const [inputError, setInputError] = useState(false);
+    const [selectedChatbot,setSelectedChatbot] = useState('Ada');
+    const [selectedChatbotDetails,setSelectedChatbotDetails] = useState('Ada is a chatbot that can help you with your study and review tasks. You can also ask Ada about the weather, news, and more!');
+
+
 
     useEffect(() => {
         // get the study items for today
@@ -69,6 +74,7 @@ function ChatBuddy() {
             }
         }
 
+
         //get review items for today
         const getTodayReviewItems = async () => {
             try {
@@ -96,13 +102,19 @@ function ChatBuddy() {
             }
         }
 
-        //load the history of messages
+        getTodayStudyItems();
+        getTodayReviewItems();
+    }, []);
+
+    //update chatbot details and chat history when chatbot is changed
+    useEffect(() => {
+        // load the history of messages
         const getMessages = async () => {
             try {
-                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot`, {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot/${selectedChatbot}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include'
+                    credentials: 'include',           
                 });
 
                 if (response.ok) {
@@ -124,9 +136,26 @@ function ChatBuddy() {
         }
 
         getMessages();
-        getTodayStudyItems();
-        getTodayReviewItems();
-    }, []);
+
+        switch (selectedChatbot) {
+            case 'Ada':
+                setSelectedChatbotDetails('Ada is a chatbot that can help you with your study and review tasks. You can also ask Ada about the weather, news, and more!');
+                break;
+            case 'Sam':
+                setSelectedChatbotDetails('Sam is a chatbot that can help you with your study and review tasks. You can also ask Sam about the weather, news, and more!');
+                break;
+            case 'Lucy':
+                setSelectedChatbotDetails('Lucy is a chatbot that can help you with your study and review tasks. You can also ask Lucy about the weather, news, and more!');
+                break;
+            case 'Jack':
+                setSelectedChatbotDetails('Jack is a chatbot that can help you with your study and review tasks. You can also ask Jack about the weather, news, and more!');
+                break;
+            default:
+                setSelectedChatbotDetails('Ada is a chatbot that can help you with your study and review tasks. You can also ask Ada about the weather, news, and more!');
+                break;
+        }
+    }, [selectedChatbot]);
+
 
     //send message to chatbot
     const handleSendMessage = async () => {
@@ -139,7 +168,7 @@ function ChatBuddy() {
             const tempUserMessage = { "role": "user", "content": newContent };
             setMessages(prevMessages => [...prevMessages, tempUserMessage]);
             setNewContent("");
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot/${selectedChatbot}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -262,8 +291,37 @@ function ChatBuddy() {
 
     return (
         <Box display="flex" justifyContent="center" alignItems="start">
-            {/* Left Side: Chatbuddy. Important: display flex && column-reverse */}
-            <Box flexGrow={1} pr={2} style={{ position: 'relative', marginLeft: '100px' }}>
+
+            {/* New Left Side: Chatbot Selection */}
+        <Box display="flex" flexDirection="column" alignItems="center" flexShrink={0} width={200} >
+            {/* Chatbot buttons */}
+            <Box display="flex" flexDirection="column" mb={2} mt={5} pr={1}>
+                <Button 
+                variant={selectedChatbot === 'Ada' ? 'contained' : 'outlined'} 
+                color={selectedChatbot === 'Ada' ? 'primary' : 'default'}
+                onClick={() => setSelectedChatbot('Ada')}>Ada</Button>
+                <Button 
+                variant={selectedChatbot === 'Sam' ? 'contained' : 'outlined'} 
+                color={selectedChatbot === 'Sam' ? 'primary' : 'default'} 
+                onClick={() => setSelectedChatbot('Sam')}>Sam</Button>
+                <Button 
+                variant={selectedChatbot === 'Lucy' ? 'contained' : 'outlined'} 
+                color={selectedChatbot === 'Lucy' ? 'primary' : 'default'}
+                onClick={() => setSelectedChatbot('Lucy')}>Lucy</Button>
+                <Button 
+                variant={selectedChatbot === 'Jack' ? 'contained' : 'outlined'} 
+                color={selectedChatbot === 'Jack' ? 'primary' : 'default'}
+                onClick={() => setSelectedChatbot('Jack')}>Jack</Button>
+            </Box>
+
+            {/* Chatbot Details */}
+            <Box>
+                <Typography variant="h6">Chatbot Details:</Typography>
+                <Typography variant="body1">{selectedChatbotDetails}</Typography>
+            </Box>
+        </Box>
+            {/* Middle Side: Chatbuddy. Important: display flex && column-reverse */}
+            <Box flexGrow={1}  style={{ position: 'relative', marginLeft: '20px',marginRight: '20px' }}>
                 <Paper elevation={3} style={{ height: 'calc(100vh - 120px)', overflow: 'auto', marginTop: '0px', marginBottom: '0px', padding: '0px', display: 'flex', flexDirection: 'column-reverse', justifyContent: 'space-between' }} >
                     <Box display="flex" flexDirection="column" alignItems="center" mt={2} px={2}>
                         <Box width="100%" display="flex" justifyContent="space-between">
@@ -315,7 +373,7 @@ function ChatBuddy() {
             </Box>
 
             {/* Right Side: Study and Review Tasks */}
-            <Box flexShrink={0} width={300} pr={2}>
+            <Box flexShrink={0} width={320} pr={2}>
                 <Paper elevation={3} style={{ height: 'calc(100vh - 120px)', overflow: 'auto', marginTop: '0px', marginBottom: '0px' }} >
                     <Box display='flex' justifyContent='center' alignContent='center' sx={{ p: 1 }}>
                         <Typography variant='h5' align='center' style={{ fontWeight: 'bold' }}>Task today!</Typography><LocalLibraryIcon style={{ fontSize: '30px', marginTop: '0px' }} />
