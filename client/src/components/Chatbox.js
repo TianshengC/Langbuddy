@@ -23,7 +23,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Chip from '@mui/material/Chip';
 
 
-function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeverity, setTodayReviewItems }) {
+function Chatbox({ message, selectedChatbot, setSnackbarOpen, setSnackbarMessage, setSnackbarSeverity, setTodayReviewItems }) {
     const { role, content } = message;
     const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm();
     const [selectedPattern, setSelectedPattern] = useState(false);
@@ -32,6 +32,7 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
     const [showTranslatedText, setShowTranslatedText] = useState(false);
     const [loadingTranslation, setLoadingTranslation] = useState(false);
     const [loadingSpeech, setLoadingSpeech] = useState(false);
+    const [audio, setAudio] = useState(null);
 
     const handleModalOpen = () => {
         setValue('content', content);
@@ -101,25 +102,32 @@ function Chatbox({ message, setSnackbarOpen, setSnackbarMessage, setSnackbarSeve
 
 //handle speech synthesis Microsoft Azure API
     const handleSpeak = async () => {
+        if(audio) {
+            audio.currentTime = 0;
+            audio.play();
+            return;
+        }
+        
         try {
-
             setLoadingSpeech(true);
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/synthesis`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/synthesis/${selectedChatbot}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
+                credentials: 'include', // Ensures the request includes the cookie
                 body: JSON.stringify({ text: content })
             });
     
             if (response.ok) {
                 const audioBlob = await response.blob();
                 const audioUrl = window.URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioUrl);
-                audio.play();
-                audio.onended = () => {
+                const newAudio = new Audio(audioUrl);
+                newAudio.onended = () => {
                     window.URL.revokeObjectURL(audioUrl); // Free up memory
                 };
+                setAudio(newAudio);
+                newAudio.play();
                 setSnackbarOpen(true);
                 setSnackbarMessage('Speech synthesized successfully');
                 setSnackbarSeverity('success');

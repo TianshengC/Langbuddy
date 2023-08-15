@@ -20,8 +20,8 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 const findEarliestScheduledDate = require('./utils/findEarlistScheduledDate');
 const chatbotGreetingMessages = require('./utils/chatbotGreetingMessage');
-const getChatbotModel = require('./utils/chatbotModel');
-const { get } = require('http');
+const { getChatbotModel, getChatbotGreeting, getChatbotVoice } = require('./utils/chatbotModel');
+
 
 app.use(express.json())
 
@@ -75,14 +75,14 @@ app.post('/signup',
             }
 
             const newUser = await pool.query(
-                "INSERT INTO users (username, user_email, password_hash, created_date, mother_language) VALUES ($1, $2, $3, $4, $5) RETURNING username, id_user",
-                [username, user_email, hashedPassword, new Date(), mother_language]
+                "INSERT INTO users (username, user_email, password_hash, created_date, mother_language) VALUES ($1, $2, $3, Now(), $4) RETURNING username, id_user",
+                [username, user_email, hashedPassword, mother_language]
             );
-            
+
             for (let msg of chatbotGreetingMessages) {
                 await pool.query(
-                    "INSERT INTO ChatMessages (id_user, created_date, chatbot_name, role, content) VALUES ($1, $2, $3, $4, $5)",
-                    [newUser.rows[0].id_user, new Date(), msg.chatbotName, 'assistant', msg.content]
+                    "INSERT INTO ChatMessages (id_user, created_date, chatbot_name, role, content) VALUES ($1, NOW(), $2, $3, $4)",
+                    [newUser.rows[0].id_user, msg.chatbotName, msg.role, msg.content]
                 );
             }
 
@@ -779,7 +779,7 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
         const insertValues = [userId, chatbotModel.name, 'user', content];
         await client.query(insertText, insertValues);
 
-        // Fetch the last 20 messages from the database
+        // Fetch the last 15 messages from the database
         const fetchText = `
             SELECT role, content 
             FROM ChatMessages 
@@ -792,11 +792,11 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
                 AND role = $2 And chatbot_name = $3
             )
             ORDER BY created_date DESC, id_message DESC
-            LIMIT 20;
+            LIMIT 15;
         `;
         const fetchValues = [userId, 'topic', chatbotModel.name];
         const fetchResult = await client.query(fetchText, fetchValues);
-                
+
 
         //decide the function and personality of the chatbot
 
@@ -890,8 +890,8 @@ app.post('/translate', async (req, res) => {
 
 // const fs = require('fs'); for testing
 
-//synthesis from azure API
-app.post('/synthesis', async (req, res) => {
+//text synthesis from azure API
+app.post('/synthesis/:selectedChatbot', async (req, res) => {
     try {
         const token = req.cookies.token;
 
@@ -905,12 +905,15 @@ app.post('/synthesis', async (req, res) => {
         }
 
         const { text } = req.body;
-        const azureEndpoint = "https://uksouth.tts.speech.microsoft.com/cognitiveservices/v1";
-        const apiKey = "59078bd2f32b44e8aa6b249d0e3b1035";
+        const { selectedChatbot } = req.params;
+        const chatbotVoice = getChatbotVoice(selectedChatbot);
+        console.log(chatbotVoice);
 
-        const response = await axios.post(azureEndpoint, `<speak version='1.0' xml:lang='en-US'><voice xml:lang='en-US' xml:gender='Female' name='en-US-JennyMultilingualNeural'>${text}</voice></speak>`, {
+        const azureEndpoint = "https://uksouth.tts.speech.microsoft.com/cognitiveservices/v1";
+
+        const response = await axios.post(azureEndpoint, `<speak version='1.0' xml:lang=${chatbotVoice.lang}><voice name=${chatbotVoice.name}>${text}</voice></speak>`, {
             headers: {
-                'Ocp-Apim-Subscription-Key': apiKey,
+                'Ocp-Apim-Subscription-Key': process.env.SYNTHESIS_API_KEY,
                 'Content-Type': 'application/ssml+xml',
                 'X-Microsoft-OutputFormat': 'riff-24khz-16bit-mono-pcm', //riff-8khz-16bit-mono-pcm OR riff-24khz-16bit-mono-pcm 
                 'User-Agent': 'langbuddy'
@@ -933,7 +936,7 @@ app.post('/synthesis', async (req, res) => {
 });
 
 //start a new topic in chatbot
-app.post('/chatbot/new-topic', async (req, res) => {
+app.post('/chatbot/new-topic/:selectedChatbot', async (req, res) => {
     try {
         const token = req.cookies.token;
 
@@ -947,16 +950,30 @@ app.post('/chatbot/new-topic', async (req, res) => {
         }
         const userId = decoded.user_id;
         const { content } = req.body;
+        const { selectedChatbot } = req.params;
+        const chatbotModel = getChatbotModel(selectedChatbot);
 
         const newTopic = await pool.query(`
             INSERT INTO ChatMessages 
                 (id_user, created_date, chatbot_name, role, content) 
             VALUES 
-                ($1, $2, $3, $4, $5) 
+                ($1, NOW(), $2, $3, $4) 
             RETURNING role, content; 
-        `, [userId, new Date(), 'Ada', 'topic', content]);
+        `, [userId, chatbotModel.name, 'topic', content]);
 
-        res.json(newTopic.rows[0]);
+        const defaultGreeting = getChatbotGreeting(chatbotModel.name);
+
+        const newGreeting = await pool.query(`
+            INSERT INTO ChatMessages 
+                (id_user, created_date, chatbot_name, role, content) 
+            VALUES 
+                ($1, NOW(), $2, $3, $4) 
+            RETURNING role, content; 
+        `, [userId, chatbotModel.name, 'assistant', defaultGreeting]);
+
+        const combinedMessages = [newTopic.rows[0], newGreeting.rows[0]];
+        console.log(combinedMessages);
+        res.json(combinedMessages);
 
     } catch (err) {
         console.error(err.message);
@@ -967,75 +984,72 @@ app.post('/chatbot/new-topic', async (req, res) => {
 
 
 
+//get overview statistics for dashboard
+app.get('/dashboard', async (req, res) => {
+    try {
 
+        const token = req.cookies.token;
 
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
 
-        //get overview statistics for dashboard
-        app.get('/dashboard', async (req, res) => {
-            try {
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
 
-                const token = req.cookies.token;
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const userId = decoded.user_id;
 
-                if (!token) {
-                    return res.status(401).json({ message: "No token provided" });
-                }
-
-                const decoded = await jwtVerify(token, process.env.JWT_SECRET);
-
-                if (!decoded || !decoded.user_id) {
-                    return res.status(401).json({ message: "Invalid token" });
-                }
-                const userId = decoded.user_id;
-
-                // Fetch study items scheduled today or before today
-                const scheduledStudyTodayQuery = `
+        // Fetch study items scheduled today or before today
+        const scheduledStudyTodayQuery = `
             SELECT COUNT(*) 
             FROM Study_Items 
             WHERE id_user = $1 AND scheduled_date <= CURRENT_DATE AND status = 'Scheduled';
         `;
-                const todayScheduledStudyItems = await pool.query(scheduledStudyTodayQuery, [userId]);
-                const numOfScheduledStudyItemsToday = parseInt(todayScheduledStudyItems.rows[0].count);
+        const todayScheduledStudyItems = await pool.query(scheduledStudyTodayQuery, [userId]);
+        const numOfScheduledStudyItemsToday = parseInt(todayScheduledStudyItems.rows[0].count);
 
-                // Fetch total number of study items with status 'Scheduled'
-                const scheduledStudyTotalQuery = `
+        // Fetch total number of study items with status 'Scheduled'
+        const scheduledStudyTotalQuery = `
             SELECT COUNT(*) 
             FROM Study_Items 
             WHERE id_user = $1 AND status = 'Scheduled';
         `;
-                const totalScheduledStudyItems = await pool.query(scheduledStudyTotalQuery, [userId]);
-                const numOfScheduledStudyItemsTotal = parseInt(totalScheduledStudyItems.rows[0].count);
+        const totalScheduledStudyItems = await pool.query(scheduledStudyTotalQuery, [userId]);
+        const numOfScheduledStudyItemsTotal = parseInt(totalScheduledStudyItems.rows[0].count);
 
-                // Fetch total number of study items with status 'Finished'
-                const finishedStudyTotalQuery = `
+        // Fetch total number of study items with status 'Finished'
+        const finishedStudyTotalQuery = `
             SELECT COUNT(*) 
             FROM Study_Items 
             WHERE id_user = $1 AND status = 'Finished';
         `;
-                const totalFinishedStudyItems = await pool.query(finishedStudyTotalQuery, [userId]);
-                const numOfFinishedStudyItemsTotal = parseInt(totalFinishedStudyItems.rows[0].count);
+        const totalFinishedStudyItems = await pool.query(finishedStudyTotalQuery, [userId]);
+        const numOfFinishedStudyItemsTotal = parseInt(totalFinishedStudyItems.rows[0].count);
 
 
-                // Fetch review items which have sessions scheduled today or before today
-                const scheduledReviewTodayQuery = `
+        // Fetch review items which have sessions scheduled today or before today
+        const scheduledReviewTodayQuery = `
             SELECT COUNT(DISTINCT i.id_review) 
             FROM Review_Items i 
             JOIN Review_Sessions s ON i.id_review = s.id_review 
             WHERE i.id_user = $1 AND s.status = 'Scheduled' AND s.scheduled_date <= CURRENT_DATE;
         `;
-                const todayReviewItems = await pool.query(scheduledReviewTodayQuery, [userId]);
+        const todayReviewItems = await pool.query(scheduledReviewTodayQuery, [userId]);
 
 
-                // Fetch total number of review items which have sessions with status 'Scheduled'
-                const scheduledReviewTotalQuery = `
+        // Fetch total number of review items which have sessions with status 'Scheduled'
+        const scheduledReviewTotalQuery = `
             SELECT COUNT(DISTINCT i.id_review) 
             FROM Review_Items i 
             JOIN Review_Sessions s ON i.id_review = s.id_review 
             WHERE i.id_user = $1 AND s.status = 'Scheduled';
         `;
-                const totalScheduledReviewItems = await pool.query(scheduledReviewTotalQuery, [userId]);
+        const totalScheduledReviewItems = await pool.query(scheduledReviewTotalQuery, [userId]);
 
-                // Fetch total number of review items which have at least one session with status 'Finished' and no sessions with status 'Scheduled'
-                const finishedReviewTotalQuery = `
+        // Fetch total number of review items which have at least one session with status 'Finished' and no sessions with status 'Scheduled'
+        const finishedReviewTotalQuery = `
             SELECT COUNT(DISTINCT i.id_review) 
             FROM Review_Items i 
             WHERE i.id_user = $1 
@@ -1048,103 +1062,105 @@ app.post('/chatbot/new-topic', async (req, res) => {
                 WHERE s.id_review = i.id_review AND s.status = 'Scheduled'
             );
         `;
-                const totalFinishedReviewItems = await pool.query(finishedReviewTotalQuery, [userId]);
+        const totalFinishedReviewItems = await pool.query(finishedReviewTotalQuery, [userId]);
 
-                //get course information
-                const id_course = 1;
-                const courseQuery = `
+        //get course information
+        const id_course = 1;
+        const courseQuery = `
             SELECT title, description FROM Courses WHERE id_course = $1;
         `;
-                const courseResponse = await pool.query(courseQuery, [id_course]);
+        const courseResponse = await pool.query(courseQuery, [id_course]);
 
-                //get course registration information
-                const courseRegistrationQuery = `
+        //get course registration information
+        const courseRegistrationQuery = `
             SELECT COUNT(*) FROM User_Courses WHERE id_user = $1 AND id_course = $2;
         `;
-                const courseRegistrationResponse = await pool.query(courseRegistrationQuery, [userId, id_course]);
+        const courseRegistrationResponse = await pool.query(courseRegistrationQuery, [userId, id_course]);
 
 
 
-                // Respond with the fetched data
-                res.json({
-                    numOfScheduledStudyItemsToday: todayScheduledStudyItems.rows[0].count,
-                    numOfScheduledStudyItemsTotal: totalScheduledStudyItems.rows[0].count,
-                    numOfFinishedStudyItemsTotal: totalFinishedStudyItems.rows[0].count,
-                    numOfScheduledReviewItemsToday: todayReviewItems.rows[0].count,
-                    numOfScheduledReviewItemsTotal: totalScheduledReviewItems.rows[0].count,
-                    numOfFinishedReviewItemsTotal: totalFinishedReviewItems.rows[0].count,
-                    courseTitle: courseResponse.rows[0].title,
-                    courseDescription: courseResponse.rows[0].description,
-                    isRegistered: courseRegistrationResponse.rows[0].count > 0 ? true : false
-                });
-
-            } catch (err) {
-                console.error(err.message);
-                res.status(500).json("Server error");
-            }
+        // Respond with the fetched data
+        res.json({
+            numOfScheduledStudyItemsToday: todayScheduledStudyItems.rows[0].count,
+            numOfScheduledStudyItemsTotal: totalScheduledStudyItems.rows[0].count,
+            numOfFinishedStudyItemsTotal: totalFinishedStudyItems.rows[0].count,
+            numOfScheduledReviewItemsToday: todayReviewItems.rows[0].count,
+            numOfScheduledReviewItemsTotal: totalScheduledReviewItems.rows[0].count,
+            numOfFinishedReviewItemsTotal: totalFinishedReviewItems.rows[0].count,
+            courseTitle: courseResponse.rows[0].title,
+            courseDescription: courseResponse.rows[0].description,
+            isRegistered: courseRegistrationResponse.rows[0].count > 0 ? true : false
         });
 
-        app.post('/dashboard/register-course', async (req, res) => {
-            try {
-                const token = req.cookies.token;
-
-                if (!token) {
-                    return res.status(401).json({ message: "No token provided" });
-                }
-
-                const decoded = await jwtVerify(token, process.env.JWT_SECRET);
-
-                if (!decoded || !decoded.user_id) {
-                    return res.status(401).json({ message: "Invalid token" });
-                }
-                const userId = decoded.user_id;
-
-                // Ensure the user isn't already registered for the course
-                const alreadyRegistered = await pool.query(
-                    "SELECT * FROM User_Courses WHERE id_user = $1 AND id_course = 1",
-                    [userId]
-                );
-
-                if (alreadyRegistered.rows.length) {
-                    return res.status(400).json({ message: "User already registered for the course" });
-                }
-
-                // Register the user for the course
-                await pool.query(
-                    "INSERT INTO User_Courses (id_user, id_course, registration_date) VALUES ($1, 1, CURRENT_TIMESTAMP)",
-                    [userId]
-                );
-
-                // Retrieve the default study items for the course
-                const defaultStudyItems = await pool.query(
-                    "SELECT * FROM Course_Default_Study_Items WHERE id_course = 1"
-                );
-
-                // Calculate today's date
-                const today = new Date();
-
-                // Create study tasks in Study_Items table
-                for (let item of defaultStudyItems.rows) {
-                    let scheduledDate = new Date(today);
-                    scheduledDate.setDate(today.getDate() + item.scheduled_date_offset);
-
-                    await pool.query(
-                        "INSERT INTO Study_Items (id_user, category, title, content, created_date, scheduled_date, status) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, 'Scheduled')",
-                        [userId, item.category, item.title, item.content, scheduledDate]
-                    );
-                }
-
-                res.status(200).json({ status: true, message: "Study items created successfully." });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
 
 
-            } catch (err) {
-                console.error(err);
-                res.status(500).json({ status: false, message: "Server error" });
-            }
-        });
+// dashboard register a course
+app.post('/dashboard/register-course', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const userId = decoded.user_id;
+
+        // Ensure the user isn't already registered for the course
+        const alreadyRegistered = await pool.query(
+            "SELECT * FROM User_Courses WHERE id_user = $1 AND id_course = 1",
+            [userId]
+        );
+
+        if (alreadyRegistered.rows.length) {
+            return res.status(400).json({ message: "User already registered for the course" });
+        }
+
+        // Register the user for the course
+        await pool.query(
+            "INSERT INTO User_Courses (id_user, id_course, registration_date) VALUES ($1, 1, CURRENT_TIMESTAMP)",
+            [userId]
+        );
+
+        // Retrieve the default study items for the course
+        const defaultStudyItems = await pool.query(
+            "SELECT * FROM Course_Default_Study_Items WHERE id_course = 1"
+        );
+
+        // Calculate today's date
+        const today = new Date();
+
+        // Create study tasks in Study_Items table
+        for (let item of defaultStudyItems.rows) {
+            let scheduledDate = new Date(today);
+            scheduledDate.setDate(today.getDate() + item.scheduled_date_offset);
+
+            await pool.query(
+                "INSERT INTO Study_Items (id_user, category, title, content, created_date, scheduled_date, status) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, 'Scheduled')",
+                [userId, item.category, item.title, item.content, scheduledDate]
+            );
+        }
+
+        res.status(200).json({ status: true, message: "Study items created successfully." });
+
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ status: false, message: "Server error" });
+    }
+});
 
 
 
-        app.listen(port, () => {
-            console.log(`Server is running on port ${port}`)
-        })
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`)
+})

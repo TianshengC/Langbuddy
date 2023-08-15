@@ -21,7 +21,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
-import { set } from 'react-hook-form';
 
 
 function ChatBuddy() {
@@ -43,7 +42,7 @@ function ChatBuddy() {
     const [newTopicInput, setNewTopicInput] = useState('');
     const [inputError, setInputError] = useState(false);
     const [selectedChatbot,setSelectedChatbot] = useState('Ada');
-    const [selectedChatbotDetails,setSelectedChatbotDetails] = useState('Ada is a chatbot that can help you with your study and review tasks. You can also ask Ada about the weather, news, and more!');
+    const [selectedChatbotDetails,setSelectedChatbotDetails] = useState('Ada is a helpful and encouraging assistant who teach English as a secondary language. She can provide useful learning tips and correct the your mistakes.');
 
 
 
@@ -139,19 +138,19 @@ function ChatBuddy() {
 
         switch (selectedChatbot) {
             case 'Ada':
-                setSelectedChatbotDetails('Ada is a chatbot that can help you with your study and review tasks. You can also ask Ada about the weather, news, and more!');
+                setSelectedChatbotDetails("Ada is a helpful and encouraging assistant who teach English as a secondary language. She can provide useful learning tips and correct the your mistakes. (Female, American Accent.)");
                 break;
             case 'Sam':
-                setSelectedChatbotDetails('Sam is a chatbot that can help you with your study and review tasks. You can also ask Sam about the weather, news, and more!');
+                setSelectedChatbotDetails('Sam specializes in teaching English vocabulary with examples. He also suggests useful learning strategy to learn English. (Male, American Accent.)');
                 break;
             case 'Lucy':
-                setSelectedChatbotDetails('Lucy is a chatbot that can help you with your study and review tasks. You can also ask Lucy about the weather, news, and more!');
+                setSelectedChatbotDetails("Lucy is passionate about sharing UK culture. She is an expert in introducing UK customs and history. (Female, British Accent.)");
                 break;
             case 'Jack':
-                setSelectedChatbotDetails('Jack is a chatbot that can help you with your study and review tasks. You can also ask Jack about the weather, news, and more!');
+                setSelectedChatbotDetails('Jack is an interview and career coach. His style is sympathetic and encouraging. (Male, British Accent.)');
                 break;
             default:
-                setSelectedChatbotDetails('Ada is a chatbot that can help you with your study and review tasks. You can also ask Ada about the weather, news, and more!');
+                setSelectedChatbotDetails('Ada is a helpful and encouraging assistant who teach English as a secondary language. She can provide useful learning tips and correct the your mistakes. (Female, American Accent.)');
                 break;
         }
     }, [selectedChatbot]);
@@ -255,7 +254,7 @@ function ChatBuddy() {
 
         try {
             setLoadingNewTopic(true);
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot/new-topic`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot/new-topic/${selectedChatbot}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -264,7 +263,8 @@ function ChatBuddy() {
 
             if (response.ok) {
                 const newTopic = await response.json();
-                setMessages(prevMessages => [...prevMessages, newTopic]);
+                console.log(newTopic);
+                setMessages(prevMessages => [...prevMessages, ...newTopic]);
             } else {
                 const error = await response.text();
                 console.log(error);
@@ -362,6 +362,7 @@ function ChatBuddy() {
                             <Chatbox
                                 key={index}
                                 message={message}
+                                selectedChatbot={selectedChatbot}
                                 setSnackbarMessage={setSnackbarMessage}
                                 setSnackbarOpen={setSnackbarOpen}
                                 setSnackbarSeverity={setSnackbarSeverity}
