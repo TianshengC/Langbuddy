@@ -49,7 +49,7 @@ CREATE TABLE ChatMessages (
     id_user UUID NOT NULL REFERENCES Users(id_user) ON DELETE CASCADE, 
     created_date TIMESTAMP NOT NULL,
     chatbot_name VARCHAR(100) NOT NULL,  
-    role VARCHAR(50) NOT NULL,
+    role VARCHAR(50) NOT NULL CHECK (status IN ('user', 'assistant', 'topic')),
     content TEXT NOT NULL
     prompt_tokens INT,
     completion_tokens INT,

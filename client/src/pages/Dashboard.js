@@ -1,6 +1,6 @@
 import { Avatar, Box, Button, Container, Chip, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { useState, useEffect } from "react";
-import { set } from "react-hook-form";
+import ukPicture from './UK-course.jpg';
 
 
 function Dashboard() {
@@ -144,7 +144,7 @@ function Dashboard() {
                                     <Typography variant="h6" gutterBottom>
                                         Recommended
                                     </Typography>
-                                    <Avatar alt="Sample Image" src="/path-to-your-image.jpg" variant="rounded" sx={{ width: 128, height: 128 }} />
+                                    <Avatar alt="Sample Image" src={ukPicture} variant="rounded" sx={{ width: 186, height: 128 }} />
                                 </Box>
                             </Grid>
                             {/* Right Side: Text & Button */}

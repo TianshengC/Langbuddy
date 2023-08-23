@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Box from '@mui/system/Box';
-import { TextField, Button } from '@mui/material';
+import { TextField, Button, Tooltip } from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
@@ -41,8 +41,8 @@ function ChatBuddy() {
     const [openNewTopicDialog, setOpenNewTopicDialog] = useState(false);
     const [newTopicInput, setNewTopicInput] = useState('');
     const [inputError, setInputError] = useState(false);
-    const [selectedChatbot,setSelectedChatbot] = useState('Ada');
-    const [selectedChatbotDetails,setSelectedChatbotDetails] = useState('Ada is a helpful and encouraging assistant who teach English as a secondary language. She can provide useful learning tips and correct the your mistakes.');
+    const [selectedChatbot, setSelectedChatbot] = useState('Ada');
+    const [selectedChatbotDetails, setSelectedChatbotDetails] = useState('Ada is a helpful and encouraging assistant who teach English as a secondary language. She can provide useful learning tips and correct the your mistakes.');
 
 
 
@@ -113,7 +113,7 @@ function ChatBuddy() {
                 const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/chatbot/${selectedChatbot}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',           
+                    credentials: 'include',
                 });
 
                 if (response.ok) {
@@ -249,7 +249,7 @@ function ChatBuddy() {
         // Exit the function if the input is empty
         if (newTopicInput.trim() === '') {
             setInputError(true);
-            return; 
+            return;
         }
 
         try {
@@ -293,35 +293,35 @@ function ChatBuddy() {
         <Box display="flex" justifyContent="center" alignItems="start">
 
             {/* New Left Side: Chatbot Selection */}
-        <Box display="flex" flexDirection="column" alignItems="center" flexShrink={0} width={200} >
-            {/* Chatbot buttons */}
-            <Box display="flex" flexDirection="column" mb={2} mt={5} pr={1}>
-                <Button 
-                variant={selectedChatbot === 'Ada' ? 'contained' : 'outlined'} 
-                color={selectedChatbot === 'Ada' ? 'primary' : 'default'}
-                onClick={() => setSelectedChatbot('Ada')}>Ada</Button>
-                <Button 
-                variant={selectedChatbot === 'Sam' ? 'contained' : 'outlined'} 
-                color={selectedChatbot === 'Sam' ? 'primary' : 'default'} 
-                onClick={() => setSelectedChatbot('Sam')}>Sam</Button>
-                <Button 
-                variant={selectedChatbot === 'Lucy' ? 'contained' : 'outlined'} 
-                color={selectedChatbot === 'Lucy' ? 'primary' : 'default'}
-                onClick={() => setSelectedChatbot('Lucy')}>Lucy</Button>
-                <Button 
-                variant={selectedChatbot === 'Jack' ? 'contained' : 'outlined'} 
-                color={selectedChatbot === 'Jack' ? 'primary' : 'default'}
-                onClick={() => setSelectedChatbot('Jack')}>Jack</Button>
-            </Box>
+            <Box display="flex" flexDirection="column" alignItems="center" flexShrink={0} width={200} >
+                {/* Chatbot buttons */}
+                <Box display="flex" flexDirection="column" mb={2} mt={5} pr={1}>
+                    <Button
+                        variant={selectedChatbot === 'Ada' ? 'contained' : 'outlined'}
+                        color={selectedChatbot === 'Ada' ? 'primary' : 'default'}
+                        onClick={() => setSelectedChatbot('Ada')}>Ada</Button>
+                    <Button
+                        variant={selectedChatbot === 'Sam' ? 'contained' : 'outlined'}
+                        color={selectedChatbot === 'Sam' ? 'primary' : 'default'}
+                        onClick={() => setSelectedChatbot('Sam')}>Sam</Button>
+                    <Button
+                        variant={selectedChatbot === 'Lucy' ? 'contained' : 'outlined'}
+                        color={selectedChatbot === 'Lucy' ? 'primary' : 'default'}
+                        onClick={() => setSelectedChatbot('Lucy')}>Lucy</Button>
+                    <Button
+                        variant={selectedChatbot === 'Jack' ? 'contained' : 'outlined'}
+                        color={selectedChatbot === 'Jack' ? 'primary' : 'default'}
+                        onClick={() => setSelectedChatbot('Jack')}>Jack</Button>
+                </Box>
 
-            {/* Chatbot Details */}
-            <Box>
-                <Typography variant="h6">Chatbot Details:</Typography>
-                <Typography variant="body1">{selectedChatbotDetails}</Typography>
+                {/* Chatbot Details */}
+                <Box>
+                    <Typography variant="h6">Chatbot Details:</Typography>
+                    <Typography variant="body1">{selectedChatbotDetails}</Typography>
+                </Box>
             </Box>
-        </Box>
             {/* Middle Side: Chatbuddy. Important: display flex && column-reverse */}
-            <Box flexGrow={1}  style={{ position: 'relative', marginLeft: '20px',marginRight: '20px' }}>
+            <Box flexGrow={1} style={{ position: 'relative', marginLeft: '20px', marginRight: '20px' }}>
                 <Paper elevation={3} style={{ height: 'calc(100vh - 120px)', overflow: 'auto', marginTop: '0px', marginBottom: '0px', padding: '0px', display: 'flex', flexDirection: 'column-reverse', justifyContent: 'space-between' }} >
                     <Box display="flex" flexDirection="column" alignItems="center" mt={2} px={2}>
                         <Box width="100%" display="flex" justifyContent="space-between">
@@ -342,17 +342,29 @@ function ChatBuddy() {
                                 style={{ flexGrow: 1, maxHeight: '150px', overflow: 'auto', backgroundColor: loadingVoiceRecognition || loadingSendMessage ? '#f5f5f5' : 'transparent' }}
                             />
 
-                            <Box display="flex" justifyContent="flex-end" alignItems="center" ml={2}>
+                            <Box display="flex" flexDirection="column" justifyContent="flex-end" alignItems="flex-end" ml={2}>
+                                <Box display="flex" alignItems="center">
+                                    <Tooltip title="Start Recording" placement="top" arrow>
+                                    <DisabledButton variant="contained" color="primary" onClick={startVoiceRecognition} disabled={loadingVoiceRecognition}>
+                                        {loadingVoiceRecognition ? <CircularProgress size={23} color="inherit" /> : <MicRoundedIcon />}
+                                    </DisabledButton>
+                                    </Tooltip>
+                                    <Tooltip title="Send Message" placement="top" arrow>
+                                    <DisabledButton variant="contained" color="primary" onClick={handleSendMessage} style={{ marginLeft: '10px' }} disabled={loadingSendMessage}>
+                                        {loadingSendMessage ? <CircularProgress size={23} color="inherit" /> : <SendRoundedIcon />}
+                                    </DisabledButton>
+                                    </Tooltip>
+                                    <Tooltip title="New Topic" placement="top" arrow>
+                                    <DisabledButton variant="contained" color="primary" onClick={handleOpenDialog} style={{ marginLeft: '10px' }} disabled={loadingNewTopic}>
+                                        {loadingNewTopic ? <CircularProgress size={23} color="inherit" /> : <AutoFixHighIcon />}
+                                    </DisabledButton>
+                                    </Tooltip>
+                                </Box>
 
-                                <DisabledButton variant="contained" color="primary" onClick={startVoiceRecognition} disabled={loadingVoiceRecognition} >
-                                    {loadingVoiceRecognition ? <CircularProgress size={23} color="inherit" /> : <MicRoundedIcon />}
-                                </DisabledButton>
-                                <DisabledButton variant="contained" color="primary" onClick={handleSendMessage} style={{ marginLeft: '10px' }} disabled={loadingSendMessage} >
-                                    {loadingSendMessage ? <CircularProgress size={23} color="inherit" /> : <SendRoundedIcon />}
-                                </DisabledButton>
-                                <DisabledButton variant="contained" color="primary" onClick={handleOpenDialog} style={{ marginLeft: '10px' }} disabled={loadingNewTopic} >
-                                    {loadingNewTopic ? <CircularProgress size={23} color="inherit" /> : <AutoFixHighIcon />}
-                                </DisabledButton>
+                                {/* New sentence added here */}
+                                <Typography variant="body2" style={{ marginTop: '8px', textAlign: 'center', width: '100%' }}>
+                                    Conversation points: 50
+                                </Typography>
                             </Box>
                         </Box>
                         <Typography variant="body2" color="text.secondary" style={{ margin: 0 }}>Chatbuddy may produce inaccurate information about people, places, or facts.</Typography>
@@ -427,12 +439,14 @@ function ChatBuddy() {
                         type="text"
                         fullWidth
                         value={newTopicInput}
-                        onChange={e => {setNewTopicInput(e.target.value);
-                        setInputError(false)}}
+                        onChange={e => {
+                            setNewTopicInput(e.target.value);
+                            setInputError(false)
+                        }}
                         error={inputError}
                         helperText={inputError ? "Topic cannot be empty" : ""}
                     />
-                    
+
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={sendNewTopic} color="primary">
