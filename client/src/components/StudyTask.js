@@ -252,7 +252,7 @@ function StudyTask({
                         {status === 'Scheduled' && <Button size="small" variant="outlined" color="success" onClick={handleFinishedClick}>Finish</Button>}
                         {status === 'Scheduled' && <Button size="small" variant="outlined" color="error" onClick={() => handleStatusChange('Canceled')}>Cancel</Button>}
                         {status === 'Scheduled' && <Button size="small" variant="outlined" color="primary" onClick={handleEditDialogOpen}>Edit</Button>}
-                        {status !== 'Scheduled' && <Chip label="ARCHIEVED" style={{ backgroundColor: '#eeeeee' }} />}
+                        {status !== 'Scheduled' && <Chip label="ARCHIVED" style={{ backgroundColor: '#eeeeee' }} />}
                     </Box>
                 </CardContent>
             </Card>

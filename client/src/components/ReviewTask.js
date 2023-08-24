@@ -208,7 +208,7 @@ function ReviewTask({
                         <Box display="flex" justifyContent="flex-end" marginTop={1} flexGrow={1}>
                             {(reviewStatus === "Scheduled" && !fullSessions) && <Button size="small" variant="outlined" color="warning" onClick={() => setAddSessionDialogOpen(true)} style={{ width: '69px' }}>Add</Button>}
                             {reviewStatus === "Scheduled" && <Button size="small" variant="outlined" color="primary" onClick={handleEditDialogOpen} style={{ width: '66px' }}>Edit</Button>}
-                            {reviewStatus !== "Scheduled" && <Chip label="ARCHIEVED" style={{ backgroundColor: '#eeeeee' }} />}
+                            {reviewStatus !== "Scheduled" && <Chip label="ARCHIVED" style={{ backgroundColor: '#eeeeee' }} />}
                         </Box>
                     </Box>
                 </CardContent>

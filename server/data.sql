@@ -8,10 +8,10 @@ CREATE TABLE Users (
     password_hash VARCHAR(60) NOT NULL,
     created_date TIMESTAMP NOT NULL,
     updated_date TIMESTAMP,
-    last_login TIMESTAMP,
-    current_login TIMESTAMP,
-    mother_language VARCHAR(20) NOT NULL
-    username VARCHAR(40) NOT NULL;
+    mother_language VARCHAR(20) NOT NULL,
+    username VARCHAR(40) NOT NULL,
+    conversation_points INT DEFAULT 50,
+    last_message_date DATE
 );
 
 CREATE TABLE Study_Items (
@@ -50,9 +50,9 @@ CREATE TABLE ChatMessages (
     created_date TIMESTAMP NOT NULL,
     chatbot_name VARCHAR(100) NOT NULL,  
     role VARCHAR(50) NOT NULL CHECK (status IN ('user', 'assistant', 'topic')),
-    content TEXT NOT NULL
+    content TEXT NOT NULL,
     prompt_tokens INT,
-    completion_tokens INT,
+    completion_tokens INT
 );
 
 CREATE TABLE Courses (
