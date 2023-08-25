@@ -768,7 +768,8 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
         const userId = decoded.user_id;
         const { content } = req.body;
         const { selectedChatbot } = req.params;
-
+        
+        //Get the chatbot model information by name
         const chatbotModel = getChatbotModel(selectedChatbot);
 
         //Begin transaction
@@ -792,14 +793,13 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
                 AND role = $2 And chatbot_name = $3
             )
             ORDER BY created_date DESC, id_message DESC
-            LIMIT 15;
+            LIMIT 20;
         `;
         const fetchValues = [userId, 'topic', chatbotModel.name];
         const fetchResult = await client.query(fetchText, fetchValues);
 
 
-        //decide the function and personality of the chatbot
-
+        //add the system messages to the messages array and format the messages
         let formatedMessages = fetchResult.rows.reverse().map(row => ({ role: row.role, content: row.content }));
         const systemMessage = chatbotModel.messages;
         formatedMessages = [...systemMessage, ...formatedMessages];
@@ -808,16 +808,16 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
 
         const completion = await openai.createChatCompletion({
             model: chatbotModel.model,
-            messages: formatedMessages, //[{role:"user", content: content}],
+            messages: formatedMessages, 
             temperature: chatbotModel.temperature,
             presence_penalty: chatbotModel.presence_penalty,
             frequency_penalty: chatbotModel.frequency_penalty,
         })
 
-        // console.log(completion);
+        // get the tokens information
         const { prompt_tokens, completion_tokens } = completion.data.usage
 
-        //insert chatbot message into database
+        //insert chatbot response and tokens into database
         const chatbotMessage = completion.data.choices[0].message.content;
         const insertBotText = 'INSERT INTO ChatMessages(id_user, created_date, chatbot_name, role, content, prompt_tokens, completion_tokens) VALUES($1, NOW(), $2, $3, $4, $5, $6)';
         const insertBotValues = [userId, chatbotModel.name, 'assistant', chatbotMessage, prompt_tokens, completion_tokens];
