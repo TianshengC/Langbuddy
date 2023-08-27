@@ -233,18 +233,18 @@ function Chatbox({ message, selectedChatbot, setSnackbarOpen, setSnackbarMessage
                             </Typography>)}
                     </Box>
                     <Box display="flex" mt={0} mb={0} justifyContent={role === 'user' ? 'flex-end' : 'flex-start'} alignItems='center' style={{ width: '100%' }}>
-                        <Tooltip title="translation">
+                        <Tooltip title="translation" arrow>
                             <IconButton aria-label="translate" onClick={handleTranslate}>
                                 {loadingTranslation? <CircularProgress size={15} style={{color:iconColor }}/>:<TranslateIcon style={{ fontSize: 12, color: iconColor }} />}
                                 
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="audio">
+                        <Tooltip title="audio" arrow>
                             <IconButton aria-label="speak" onClick={handleSpeak}>
                             {loadingSpeech? <CircularProgress size={15} style={{color:iconColor }}/>:<VolumeUpIcon style={{ fontSize: 17, color: iconColor }} />}
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="create review">
+                        <Tooltip title="create review" arrow>
                             <IconButton aria-label="add" onClick={handleModalOpen}>
                                 <RateReviewIcon style={{ fontSize: 17, color: iconColor }} />
                             </IconButton>

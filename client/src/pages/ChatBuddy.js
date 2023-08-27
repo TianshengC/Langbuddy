@@ -35,6 +35,7 @@ function ChatBuddy() {
     const [loadingStudyItems, setLoadingStudyItems] = useState(true);
     const [loadingReviewItems, setLoadingReviewItems] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(true);
+    const [loadingConversationPoints, setLoadingConversationPoints] = useState(true);
     const [loadingSendMessage, setLoadingSendMessage] = useState(false);
     const [loadingVoiceRecognition, setLoadingVoiceRecognition] = useState(false);
     const [loadingNewTopic, setLoadingNewTopic] = useState(false);
@@ -43,7 +44,7 @@ function ChatBuddy() {
     const [inputError, setInputError] = useState(false);
     const [selectedChatbot, setSelectedChatbot] = useState('Ada');
     const [selectedChatbotDetails, setSelectedChatbotDetails] = useState('Ada is a helpful and encouraging assistant who teach English as a secondary language. She can provide useful learning tips and correct the your mistakes.');
-
+    const [numOfConversationPoints, setNumOfConversationPoints] = useState(50);
 
 
     useEffect(() => {
@@ -101,8 +102,37 @@ function ChatBuddy() {
             }
         }
 
+        //get the number of conversation points
+        const getNumberOfConversationPoints = async () => {
+            try {
+                console.log("Fetching conversation points...");
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/conversation-points`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setNumOfConversationPoints(data.conversationPoints);
+                    setLoadingConversationPoints(false);
+                } else {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+
+            } catch (error) {
+                console.log(error);
+                setSnackbarOpen(true);
+                setSnackbarMessage(error.message);
+                setSnackbarSeverity('error');
+            }
+        }
+
+
         getTodayStudyItems();
         getTodayReviewItems();
+        getNumberOfConversationPoints();
     }, []);
 
     //update chatbot details and chat history when chatbot is changed
@@ -164,6 +194,10 @@ function ChatBuddy() {
                 throw new Error('Please enter a message.');
             }
 
+            if (numOfConversationPoints <= 0) {
+                throw new Error('You have run out of conversation points. Please wait for the next day to continue.');
+            }
+
             const tempUserMessage = { "role": "user", "content": newContent };
             setMessages(prevMessages => [...prevMessages, tempUserMessage]);
             setNewContent("");
@@ -175,9 +209,9 @@ function ChatBuddy() {
             });
 
             if (response.ok) {
-                const aiMessage = await response.json();
-                setMessages(prevMessages => [...prevMessages, aiMessage]);
-
+                const responseData = await response.json();
+                setMessages(prevMessages => [...prevMessages, responseData.aiMessage]);
+                setNumOfConversationPoints(responseData.updatedConversationPoints);
             } else {
                 const error = await response.text();
                 console.log(error);
@@ -285,7 +319,7 @@ function ChatBuddy() {
 
 
 
-    if (loadingStudyItems || loadingReviewItems || loadingMessages) {
+    if (loadingStudyItems || loadingReviewItems || loadingMessages || loadingConversationPoints) {
         return null;
     }
 
@@ -336,7 +370,7 @@ function ChatBuddy() {
                                 placeholder={
                                     loadingVoiceRecognition ? 'Voice recognition started. Recording...' :
                                         loadingSendMessage ? 'Waiting for Chatbot reply...' :
-                                            setLoadingNewTopic ? 'Creating new topic' : 'Type your message...'
+                                            loadingNewTopic ? 'Creating new topic' : 'Type your message...'
                                 }
                                 disabled={loadingVoiceRecognition || loadingSendMessage}
                                 style={{ flexGrow: 1, maxHeight: '150px', overflow: 'auto', backgroundColor: loadingVoiceRecognition || loadingSendMessage ? '#f5f5f5' : 'transparent' }}
@@ -345,25 +379,25 @@ function ChatBuddy() {
                             <Box display="flex" flexDirection="column" justifyContent="flex-end" alignItems="flex-end" ml={2}>
                                 <Box display="flex" alignItems="center">
                                     <Tooltip title="Start Recording" placement="top" arrow>
-                                    <DisabledButton variant="contained" color="primary" onClick={startVoiceRecognition} disabled={loadingVoiceRecognition}>
-                                        {loadingVoiceRecognition ? <CircularProgress size={23} color="inherit" /> : <MicRoundedIcon />}
-                                    </DisabledButton>
+                                        <DisabledButton variant="contained" color="primary" onClick={startVoiceRecognition} disabled={loadingVoiceRecognition}>
+                                            {loadingVoiceRecognition ? <CircularProgress size={23} color="inherit" /> : <MicRoundedIcon />}
+                                        </DisabledButton>
                                     </Tooltip>
                                     <Tooltip title="Send Message" placement="top" arrow>
-                                    <DisabledButton variant="contained" color="primary" onClick={handleSendMessage} style={{ marginLeft: '10px' }} disabled={loadingSendMessage}>
-                                        {loadingSendMessage ? <CircularProgress size={23} color="inherit" /> : <SendRoundedIcon />}
-                                    </DisabledButton>
+                                        <DisabledButton variant="contained" color="primary" onClick={handleSendMessage} style={{ marginLeft: '10px' }} disabled={loadingSendMessage}>
+                                            {loadingSendMessage ? <CircularProgress size={23} color="inherit" /> : <SendRoundedIcon />}
+                                        </DisabledButton>
                                     </Tooltip>
                                     <Tooltip title="New Topic" placement="top" arrow>
-                                    <DisabledButton variant="contained" color="primary" onClick={handleOpenDialog} style={{ marginLeft: '10px' }} disabled={loadingNewTopic}>
-                                        {loadingNewTopic ? <CircularProgress size={23} color="inherit" /> : <AutoFixHighIcon />}
-                                    </DisabledButton>
+                                        <DisabledButton variant="contained" color="primary" onClick={handleOpenDialog} style={{ marginLeft: '10px' }} disabled={loadingNewTopic}>
+                                            {loadingNewTopic ? <CircularProgress size={23} color="inherit" /> : <AutoFixHighIcon />}
+                                        </DisabledButton>
                                     </Tooltip>
                                 </Box>
 
                                 {/* New sentence added here */}
                                 <Typography variant="body2" style={{ marginTop: '8px', textAlign: 'center', width: '100%' }}>
-                                    Conversation points: 50
+                                    Conversation points: {numOfConversationPoints}
                                 </Typography>
                             </Box>
                         </Box>

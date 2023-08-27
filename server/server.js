@@ -748,6 +748,52 @@ app.get('/chatbot/:selectedChatbot', async (req, res) => {
     }
 });
 
+//get number of conversation points
+app.get('/conversation-points', async (req, res) => {
+
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const decoded = await jwtVerify(token, process.env.JWT_SECRET);
+
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        const userId = decoded.user_id;
+
+        const result = await pool.query(
+            "SELECT conversation_points, last_message_date FROM Users WHERE id_user = $1",
+            [userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const user = result.rows[0];
+        const currentDate = new Date();
+        
+        if (!user.last_message_date || user.last_message_date.toDateString() !== currentDate.toDateString()) {
+            // If it's a new day, reset the conversation points to 50 and update the last_message_date
+            await pool.query(
+                "UPDATE Users SET conversation_points = 50, last_message_date = NOW() WHERE id_user = $1",
+                [userId]
+            );
+            user.conversation_points = 50;
+        } 
+
+        console.log("conversation points: " + user.conversation_points);
+        res.json({ conversationPoints: user.conversation_points });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json("Server error");
+    }
+});
 
 
 //Send message to openAI and get Chatbot response
@@ -766,8 +812,31 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
             return res.status(401).json({ message: "Invalid token" });
         }
         const userId = decoded.user_id;
+
+        // Check current conversation points
+        const pointCheck = await client.query(
+            "SELECT conversation_points FROM Users WHERE id_user = $1",
+            [userId]
+        );
+
+        const currentPoints = pointCheck.rows[0].conversation_points;
+
+        if (currentPoints <= 0) {
+            throw new Error("Insufficient conversation points");
+        }
+
+
         const { content } = req.body;
+
+        if(!content){
+            throw new Error("No content provided");
+        }
+
         const { selectedChatbot } = req.params;
+
+        if(!selectedChatbot){
+            throw new Error("No chatbot provided");
+        }
         
         //Get the chatbot model information by name
         const chatbotModel = getChatbotModel(selectedChatbot);
@@ -823,7 +892,26 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
         const insertBotValues = [userId, chatbotModel.name, 'assistant', chatbotMessage, prompt_tokens, completion_tokens];
         await client.query(insertBotText, insertBotValues);
 
-        res.json(completion.data.choices[0].message);
+        // Decrease conversation points by 1 after sending the message
+        await client.query(
+            "UPDATE Users SET conversation_points = conversation_points - 1 WHERE id_user = $1",
+            [userId]
+        );
+
+        // Fetch updated conversation points
+        const updatedPointsResult = await client.query(
+            "SELECT conversation_points FROM Users WHERE id_user = $1",
+            [userId]
+        );
+
+        const updatedPoints = updatedPointsResult.rows[0].conversation_points;
+
+        // Return both AI message and updated points to frontend
+        res.json({
+            aiMessage: completion.data.choices[0].message,
+            updatedConversationPoints: updatedPoints
+        });
+
         await client.query('COMMIT');
     } catch (err) {
         if (err.response) {

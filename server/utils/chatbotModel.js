@@ -95,7 +95,7 @@ function getChatbotModel(name) {
 
 function getChatbotGreeting(name) {
 
-  const AdaGreeting = "Hi, how can I assist you with learning English today? You can ask any questions related to English.";
+  const AdaGreeting = "Hi, how can I assist you with learning English today? You can ask any questions related to English learning.";
   const SamGreeting = "Hi, how can I assist you with learning English vocabulary today? Please give me a word or phrase you want to learn.";
   const LucyGreeting = "Hi, how can I assist you in understanding UK culture today? Please give me a topic or aspect you're interested in.";
   const JackGreeting = "Hi, how can I assist you in preparing for job hunting and career development today?";
