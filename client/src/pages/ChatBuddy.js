@@ -21,6 +21,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+import { set } from 'react-hook-form';
 
 
 function ChatBuddy() {
@@ -244,6 +245,7 @@ function ChatBuddy() {
         recognition.onstart = function () {
             console.log('Voice recognition started. Speak into the microphone.');
             setLoadingVoiceRecognition(true);
+            setNewContent('');
         };
 
         recognition.onresult = function (event) {

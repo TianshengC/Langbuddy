@@ -888,6 +888,12 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
 
         //insert chatbot response and tokens into database
         const chatbotMessage = completion.data.choices[0].message.content;
+        
+        if(!chatbotMessage){
+            throw new Error("No chatbot message provided");
+        }
+
+
         const insertBotText = 'INSERT INTO ChatMessages(id_user, created_date, chatbot_name, role, content, prompt_tokens, completion_tokens) VALUES($1, NOW(), $2, $3, $4, $5, $6)';
         const insertBotValues = [userId, chatbotModel.name, 'assistant', chatbotMessage, prompt_tokens, completion_tokens];
         await client.query(insertBotText, insertBotValues);
