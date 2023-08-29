@@ -849,7 +849,7 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
         const insertValues = [userId, chatbotModel.name, 'user', content];
         await client.query(insertText, insertValues);
 
-        // Fetch the last 15 messages from the database
+        // Fetch the last 20 messages in current topic from the database
         const fetchText = `
             SELECT role, content 
             FROM ChatMessages 
@@ -873,8 +873,7 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
         const systemMessage = chatbotModel.messages;
         formatedMessages = [...systemMessage, ...formatedMessages];
 
-        console.log(formatedMessages);
-
+        //send the messages to openAI and get the reply
         const completion = await openai.createChatCompletion({
             model: chatbotModel.model,
             messages: formatedMessages, 
@@ -888,11 +887,10 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
 
         //insert chatbot response and tokens into database
         const chatbotMessage = completion.data.choices[0].message.content;
-        
-        if(!chatbotMessage){
-            throw new Error("No chatbot message provided");
-        }
 
+        if(!chatbotMessage){
+            throw new Error("No response message provided");
+        }
 
         const insertBotText = 'INSERT INTO ChatMessages(id_user, created_date, chatbot_name, role, content, prompt_tokens, completion_tokens) VALUES($1, NOW(), $2, $3, $4, $5, $6)';
         const insertBotValues = [userId, chatbotModel.name, 'assistant', chatbotMessage, prompt_tokens, completion_tokens];
