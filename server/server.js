@@ -776,7 +776,7 @@ app.get('/conversation-points', async (req, res) => {
 
         const user = result.rows[0];
         const currentDate = new Date();
-        
+
         if (!user.last_message_date || user.last_message_date.toDateString() !== currentDate.toDateString()) {
             // If it's a new day, reset the conversation points to 50 and update the last_message_date
             await pool.query(
@@ -784,7 +784,7 @@ app.get('/conversation-points', async (req, res) => {
                 [userId]
             );
             user.conversation_points = 50;
-        } 
+        }
 
         console.log("conversation points: " + user.conversation_points);
         res.json({ conversationPoints: user.conversation_points });
@@ -807,6 +807,7 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
             return res.status(401).json({ message: "No token provided" });
         }
 
+        //verify token and get user id
         const decoded = await jwtVerify(token, process.env.JWT_SECRET);
         if (!decoded || !decoded.user_id) {
             return res.status(401).json({ message: "Invalid token" });
@@ -815,7 +816,7 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
 
         // Check current conversation points
         const pointCheck = await client.query(
-            "SELECT conversation_points FROM Users WHERE id_user = $1",
+            "SELECT conversation_points, last_message_date FROM Users WHERE id_user = $1",
             [userId]
         );
 
@@ -825,19 +826,31 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
             throw new Error("Insufficient conversation points");
         }
 
+        // Get last message date and update conversation points if it's a new day
+        const lastMessageDate = pointCheck.rows[0].last_message_date;
+        const currentDate = new Date();
+
+        if (!lastMessageDate || lastMessageDate.toDateString() !== currentDate.toDateString()) {
+            // If it's a new day, reset the conversation points to 50 and update the last_message_date
+            await pool.query(
+                "UPDATE Users SET conversation_points = 50, last_message_date = NOW() WHERE id_user = $1",
+                [userId]
+            );
+        }
+
 
         const { content } = req.body;
 
-        if(!content){
+        if (!content) {
             throw new Error("No content provided");
         }
 
         const { selectedChatbot } = req.params;
 
-        if(!selectedChatbot){
+        if (!selectedChatbot) {
             throw new Error("No chatbot provided");
         }
-        
+
         //Get the chatbot model information by name
         const chatbotModel = getChatbotModel(selectedChatbot);
 
@@ -876,7 +889,7 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
         //send the messages to openAI and get the reply
         const completion = await openai.createChatCompletion({
             model: chatbotModel.model,
-            messages: formatedMessages, 
+            messages: formatedMessages,
             temperature: chatbotModel.temperature,
             presence_penalty: chatbotModel.presence_penalty,
             frequency_penalty: chatbotModel.frequency_penalty,
@@ -888,7 +901,7 @@ app.post('/chatbot/:selectedChatbot', async (req, res) => {
         //insert chatbot response and tokens into database
         const chatbotMessage = completion.data.choices[0].message.content;
 
-        if(!chatbotMessage){
+        if (!chatbotMessage) {
             throw new Error("No response message provided");
         }
 
@@ -980,7 +993,7 @@ app.post('/translate', async (req, res) => {
     }
 });
 
-// const fs = require('fs'); for testing
+// const fs = require('fs'); //for testing
 
 //text synthesis from azure API
 app.post('/synthesis/:selectedChatbot', async (req, res) => {
@@ -1013,13 +1026,12 @@ app.post('/synthesis/:selectedChatbot', async (req, res) => {
             responseType: 'arraybuffer'
         });
 
-
         res.set({
             'Content-Type': 'audio/wav',
             'Transfer-Encoding': 'chunked'
         });
         res.send(response.data);
-        // fs.writeFileSync('output.wav', response.data); for testing
+        // fs.writeFileSync('output.wav', response.data); //for testing
 
     } catch (error) {
         console.error("Error synthesizing speech:", error);

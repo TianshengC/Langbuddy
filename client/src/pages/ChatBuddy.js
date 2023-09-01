@@ -229,7 +229,7 @@ function ChatBuddy() {
         }
     };
 
-    //record audio input
+
     const startVoiceRecognition = () => {
         if (!('webkitSpeechRecognition' in window)) {
             setSnackbarOpen(true);
@@ -268,6 +268,9 @@ function ChatBuddy() {
 
         recognition.start();
     }
+
+
+
 
     //manage topic input dialog open and close
     const handleOpenDialog = () => {
@@ -381,7 +384,9 @@ function ChatBuddy() {
                             <Box display="flex" flexDirection="column" justifyContent="flex-end" alignItems="flex-end" ml={2}>
                                 <Box display="flex" alignItems="center">
                                     <Tooltip title="Start Recording" placement="top" arrow>
-                                        <DisabledButton variant="contained" color="primary" onClick={startVoiceRecognition} disabled={loadingVoiceRecognition}>
+                                        <DisabledButton variant="contained" color="primary" 
+                                        onClick={startVoiceRecognition} 
+                                        disabled={loadingVoiceRecognition}>
                                             {loadingVoiceRecognition ? <CircularProgress size={23} color="inherit" /> : <MicRoundedIcon />}
                                         </DisabledButton>
                                     </Tooltip>
