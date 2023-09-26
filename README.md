@@ -3,7 +3,7 @@
 
 ## Description
 Langbuddy is a web application tailored for English as a Foreign Language (EFL) learners. Leveraging the capabilities of ChatGPT, LangBuddy aims to enrich the English
-learning experience and facilitate effective study journal management.
+learning experience and facilitate effective study journal management. The chatbots integrate translation, voice recognition, and voice synthesis functions with a learning progress monitoring system using the spaced repetition strategy. 
 
 ## Features
 
