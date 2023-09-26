@@ -17,7 +17,7 @@ learning experience and facilitate effective study journal management.
 
 ## More introduction
 
-The introduciton video: https://youtu.be/dorQoczBExk
+This website is not deployed yet. But you can find more information in this introduction and demonstration video:https://youtu.be/dorQoczBExk
 
 
 ## Project status and future development
