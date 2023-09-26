@@ -1,25 +1,28 @@
-# Development Project
+# Langbuddy - English Web App powered by ChatGPT
 
-
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-
-
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
 
 ## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Langbuddy is a web application tailored for English as a Foreign Language (EFL) learners. Leveraging the capabilities of ChatGPT, LangBuddy aims to enrich the English
+learning experience and facilitate effective study journal management.
+
+## Features
+
+**Study Plan System**: The user can create study items with tailored schedules.
+
+**Review System with spaced repetition strategy**: When the study items are finished, they can be transformed into review items in a selected spaced repetition pattern to consolidate the learning outcome.
+
+**Chatbots with translation and voice function**: Four chatbots powered by ChatGPT are built with translation, voice recognition and voice synthesis functions. 
+
+**Integration among study systems and chatbots**: The above three systems are integrated seamlessly. The study item can be transferred to review items with a selected pattern. Furthermore, there is another learning area which gives users opportunities to view the study task and review tasks scheduled for today and interact with the Chatbots at the same time. The chat content can also be added to the review systems when needed.
+
+## More introduction
+
+The introduciton video: https://youtu.be/dorQoczBExk
 
 
+## Project status and future development
+MVP has been accomplished. Additional features, including deployment, improving the user interface, pagination, form validation and performance of chatbots may be updated in the future.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## Note
+This project is for research and study purposes only. 
+
