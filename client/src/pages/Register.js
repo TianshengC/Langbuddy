@@ -14,8 +14,8 @@ import UserContext from '../utils/UserContext';
 
 function Register() {
   const navigate = useNavigate();
-  const {currentUser} = useContext(UserContext);
-  if(currentUser) {
+  const { currentUser } = useContext(UserContext);
+  if (currentUser) {
     navigate('/dashboard');
   }
 
@@ -31,17 +31,17 @@ function Register() {
 
   const emailRegex = /^\S+@\S+\.\S+$/;
   const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-  
+
   const validate = (data) => {
-    const {username, email, password, confirmPassword, motherLanguage} = data;
+    const { username, email, password, confirmPassword, motherLanguage } = data;
     if (username === '') {
-      return 'Username is required'; 
+      return 'Username is required';
     } else if (!emailRegex.test(email)) {
-      return 'Email must be a valid email address'; 
+      return 'Email must be a valid email address';
     } else if (!passwordRegex.test(password)) {
-      return 'Password must be at least 8 characters and contain at least one letter and one number'; 
+      return 'Password must be at least 8 characters and contain at least one letter and one number';
     } else if (confirmPassword !== password) {
-      return 'Confirm password does not match password'; 
+      return 'Confirm password does not match password';
     } else if (motherLanguage === "") {
       return 'Mother language is required';
     }
@@ -64,7 +64,7 @@ function Register() {
     const error = validate(userData);
     if (error) {
       setError(error);
-      return; 
+      return;
     }
 
     const userFormatedData = {
@@ -105,75 +105,75 @@ function Register() {
   };
 
   return (
-      <Container component="main" maxWidth="xs">
-        <Box
-          sx={{
-            marginTop: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-            <AppRegistrationIcon />
-          </Avatar>
-          <Typography component="h1" variant="h5">
-            Sign up
-          </Typography>
-          <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="username"
-                  label="Username"
-                  name="username"
-                  autoComplete="username"
-                  value={userData.username}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="email"
-                  label="Email Address"
-                  name="email"
-                  autoComplete="email"
-                  value={userData.email}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="password"
-                  label="Password"
-                  type="password"
-                  id="password"
-                  autoComplete="new-password"
-                  value={userData.password}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="confirmPassword"
-                  label="Confirm Password"
-                  type="password"
-                  id="confirmPassword"
-                  autoComplete="comfirm-password"
-                  value={userData.confirmPassword}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth required>
+    <Container component="main" maxWidth="xs">
+      <Box
+        sx={{
+          marginTop: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+          <AppRegistrationIcon />
+        </Avatar>
+        <Typography component="h1" variant="h5">
+          Sign up
+        </Typography>
+        <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                id="username"
+                label="Username"
+                name="username"
+                autoComplete="username"
+                value={userData.username}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                id="email"
+                label="Email Address"
+                name="email"
+                autoComplete="email"
+                value={userData.email}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type="password"
+                id="password"
+                autoComplete="new-password"
+                value={userData.password}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                name="confirmPassword"
+                label="Confirm Password"
+                type="password"
+                id="confirmPassword"
+                autoComplete="comfirm-password"
+                value={userData.confirmPassword}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
                 <InputLabel id="mother-language-label">Mother Language</InputLabel>
                 <Select
                   labelId="mother-language-label"
@@ -188,34 +188,34 @@ function Register() {
                   <MenuItem value={"Spanish"}>Spanish</MenuItem>
                   <MenuItem value={"French"}>French</MenuItem>
                 </Select>
-                </FormControl>
-              </Grid>
-              {error && (<Grid item xs={12}>
-                <Typography component="h1" variant="body2" color="error" >
-                   {error}
-                </Typography>
-              </Grid>)}
+              </FormControl>
             </Grid>
+            {error && (<Grid item xs={12}>
+              <Typography component="h1" variant="body2" color="error" >
+                {error}
+              </Typography>
+            </Grid>)}
+          </Grid>
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              onSubmit={handleSubmit}
-            >
-              Sign Up
-            </Button>
-            <Grid container justifyContent="flex-end">
-              <Grid item>
-                <Link href="/login" variant="body2">
-                  Already have an account? Log in
-                </Link>
-              </Grid>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
+            onSubmit={handleSubmit}
+          >
+            Sign Up
+          </Button>
+          <Grid container justifyContent="flex-end">
+            <Grid item>
+              <Link href="/login" variant="body2">
+                Already have an account? Log in
+              </Link>
             </Grid>
-          </Box>
+          </Grid>
         </Box>
-      </Container>
+      </Box>
+    </Container>
   );
 }
 

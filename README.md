@@ -17,10 +17,122 @@ Please find the introduction video here: https://youtu.be/dorQoczBExk
 
 **Integration among study systems and chatbots**: The above three systems are integrated seamlessly. The study item can be transferred to review items with a selected pattern. Furthermore, there is another learning area which gives users opportunities to view the study task and review tasks scheduled for today and interact with the Chatbots at the same time. The chat content can also be added to the review systems when needed.
 
-## Project status and future development
+### Prerequisites
 
-MVP has been accomplished. Additional features, including deployment, improving the user interface, pagination, form validation and performance of chatbots may be updated in the future.
+- **npm**
 
-## Note
+  - Install the latest version of npm globally:
+    ```sh
+    npm install npm@latest -g
+    ```
 
-This project is for research and study purposes only.
+- **PostgreSQL**
+  - Ensure PostgreSQL is installed and running on your machine.
+
+### Installation
+
+1. **Clone the Repository**
+
+   - Use the following command to clone the repo:
+     ```sh
+     git clone https://github.com/TianshengC/Langbuddy.git
+     ```
+
+2. **Install NPM Packages**
+
+   - Install npm packages in both the frontend and backend folders:
+     ```sh
+     cd frontend
+     npm install
+     cd ../backend
+     npm install
+     ```
+
+3. **Create .env Files**
+
+   - Create `.env` files in both the frontend and backend folders.
+
+4. **Set Up Environment Variables in Backend**
+
+   - In the backend `.env` file, set the following variables:
+
+     ````sh
+     PORT=8000
+     DB_USERNAME=postgres
+     DB_PASSWORD=yourpassword
+     HOST=localhost
+     DB_PORT=5432
+     JWT_SECRET=yoursecret
+     NODE_ENV=development
+     OPENAI_API_KEY= yourkey
+     TRANSLATOR_API_KEY= yourkey
+     SYNTHESIS_API_KEY= yourkey
+         ```
+     ````
+
+   - In the frontend `.env` file, set the following variables:
+
+     ```sh
+     REACT_APP_BACKEND_URL=http://localhost:8000
+     ```
+
+   - Adjust these variables based on your setting.
+
+### Running the Project Locally
+
+To start the project:
+
+1. **Frontend**
+
+   - In the frontend directory, run:
+     ```sh
+     npm start
+     ```
+
+2. **Backend**
+
+   - In the backend directory, run:
+     ```sh
+     npm start
+     ```
+
+3. **Access the App**
+   - Open your browser and go to:
+     ```
+     http://localhost:3000/
+     ```
+
+To stop the project:
+
+- Use `Ctrl + C` in the terminal.
+
+## Tech Stack
+
+To develop the Langbuddy app, the following stack of technologies are used:
+
+## Frontend Technologies
+
+- [HTML5](https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/HTML5)
+- [CSS3](https://developer.mozilla.org/en-US/docs/Web/CSS)
+- [React](https://reactjs.org/)
+
+## Backend Technologies
+
+- [Node.js](https://nodejs.org/)
+- [Express.js](https://expressjs.com/)
+- [PostgreSQL](https://www.postgresql.org/)
+
+## APIs Used
+
+- [OpenAI API](https://openai.com/api/)
+- [Azure Translation API](https://azure.microsoft.com/en-us/services/cognitive-services/translator/)
+- [Azure Text-to-Voice API](https://azure.microsoft.com/en-us/services/cognitive-services/text-to-speech/)
+
+## Deployment
+
+- Not Deployment yet :( But you can run locally.
+
+## Future Enhancements
+
+- **Assistant API**: Because OpenAI has announced the new Assistant API which may be more suitable for this project. I am researching how this change can improve the performance of chatbots.
+- **User Experiences**: Some of the user experiences can be improved including pagination, displaying articles, account settings and etc..
