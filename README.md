@@ -130,9 +130,9 @@ To develop the Langbuddy app, the following stack of technologies are used:
 
 ## Deployment
 
-- Not Deployment yet :( But you can run locally.
+- Not Deployment yet. But you can run locally :)
 
 ## Future Enhancements
 
-- **Assistant API**: Because OpenAI has announced the new Assistant API which may be more suitable for this project. I am researching how this change can improve the performance of chatbots.
+- **Assistant API**: Because OpenAI has announced the new Assistant API in November 2023 which may be more suitable for this project. I am investigating how this change can improve the performance of chatbots.
 - **User Experiences**: Some of the user experiences can be improved including pagination, displaying articles, account settings and etc..
