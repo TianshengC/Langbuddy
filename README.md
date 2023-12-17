@@ -27,7 +27,10 @@ Please find the introduction video here: https://youtu.be/dorQoczBExk
     ```
 
 - **PostgreSQL**
+
   - Ensure PostgreSQL is installed and running on your machine.
+
+- **You also need the OpenAI API Key, Azure translator API key and Azure speech synthesis API key.**
 
 ### Installation
 
