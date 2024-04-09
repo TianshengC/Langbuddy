@@ -27,7 +27,7 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
   //Session Status(canceled and finished) change confirmation submission
   const confirmStatusChange = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/session/change-status/${session.id_session}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/review/session/change-status/${session.id_session}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -37,24 +37,24 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
       });
 
       if (response.ok) {
-          const updatedSessionItem = await response.json();
-  
-          // find the reviewItem this session belongs to and update the session status
-          const updatedReviewItems = displayedReviewItems.map(reviewItem => {
-            if (reviewItem.id_review === updatedSessionItem.id_review) {
-              // find this session in reviewSessions and update it
-              reviewItem.reviewSessions = reviewItem.reviewSessions.map(sessionItem => {
-                if (sessionItem.id_session === updatedSessionItem.id_session) {
-                  sessionItem.status = updatedSessionItem.status;
-                  sessionItem.finished_date = updatedSessionItem.finished_date;
-                }
-                return sessionItem;
-              });
-            }
-            return reviewItem;
-          });
-          
-          setDisplayedReviewItems(updatedReviewItems);
+        const updatedSessionItem = await response.json();
+
+        // find the reviewItem this session belongs to and update the session status
+        const updatedReviewItems = displayedReviewItems.map(reviewItem => {
+          if (reviewItem.id_review === updatedSessionItem.id_review) {
+            // find this session in reviewSessions and update it
+            reviewItem.reviewSessions = reviewItem.reviewSessions.map(sessionItem => {
+              if (sessionItem.id_session === updatedSessionItem.id_session) {
+                sessionItem.status = updatedSessionItem.status;
+                sessionItem.finished_date = updatedSessionItem.finished_date;
+              }
+              return sessionItem;
+            });
+          }
+          return reviewItem;
+        });
+
+        setDisplayedReviewItems(updatedReviewItems);
 
         setSnackbarMessage('Review session status updated successfully');
         setSnackbarSeverity('success');
@@ -88,7 +88,7 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
         {/* <Typography variant="body2" color="text.secondary">{`Created: ${formattedCreateDate}`}</Typography> */}
         {session.status === "Scheduled" &&
           <Typography variant="body2" color="text.secondary">{`Scheduled: ${formatDate(session.scheduled_date)}`}</Typography>}
-          {session.status === "Scheduled" && isOverdue(new Date(session.scheduled_date)) && 
+        {session.status === "Scheduled" && isOverdue(new Date(session.scheduled_date)) &&
           <Typography variant="body2" color="error">Overdue</Typography>}
         {session.status !== "Scheduled" &&
           <Typography variant="body2" color="text.secondary">{`${session.status}: ${formatDate(session.finished_date)}`}</Typography>}
@@ -103,7 +103,7 @@ function ReviewSessionItem({ session, sessionNumber, setSnackbarMessage, setSnac
           <Typography variant="body2" color="text.secondary">{session.status}</Typography>}
       </Box>
 
-{/* dialog for confirming session status change */}
+      {/* dialog for confirming session status change */}
       <Dialog open={confirmStatusChangeOpen} onClose={() => setConfirmStatusChangeOpen(false)}>
         <DialogTitle>Confirm Status Change</DialogTitle>
         <DialogContent>
