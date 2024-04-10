@@ -20,9 +20,8 @@ const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
-const findEarliestScheduledDate = require('./src/utils/findEarlistScheduledDate');
-const chatbotGreetingMessages = require('./utils/chatbotGreetingMessage');
-const { getChatbotModel, getChatbotGreeting, getChatbotVoice } = require('./utils/chatbotModel');
+const chatbotGreetingMessages = require('./src/utils/chatbotGreetingMessage');
+const { getChatbotModel, getChatbotGreeting, getChatbotVoice } = require('./src/utils/chatbotModel');
 
 
 app.use(express.json())
@@ -33,11 +32,6 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
-// app.use(cors())
-
-app.get('/', (req, res) => {
-    res.send('Hello World')
-})
 
 
 // User Registration and Login
@@ -185,7 +179,7 @@ app.use('/study', studyItemRouter);
 
 app.use('/review', reviewItemRouter);
 
-
+app.use()
 
 
 
