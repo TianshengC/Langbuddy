@@ -7,6 +7,8 @@ learning experience and facilitate effective study journal management. The chatb
 
 Please find the introduction video here: https://youtu.be/dorQoczBExk
 
+**I am currently continuing the refactoring of the backend.**
+
 ## Features
 
 **Study Plan System**: The user can create study items with tailored schedules.
